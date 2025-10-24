@@ -1,5 +1,22 @@
-:root {
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@theme {
+  --color-ink: #0B0F19;
+  --color-slate: #131827;
+  --color-panel: #0F1422;
+  --color-line: #22283A;
+  --color-accent: #12B5E5;
+  
   --font-mono: 'Roboto Mono', monospace;
+  
+  --max-width-wrapper: 72rem;
+  --max-width-prose: 72ch;
+  
+  --border-radius-xl2: 1.25rem;
+  
+  --box-shadow-card: 0 8px 30px rgba(0,0,0,0.15);
+  --box-shadow-subtle: 0 2px 10px rgba(0,0,0,0.08);
 }
 
 * {
@@ -10,7 +27,7 @@ html {
   font-size: 18px;
   line-height: 32px;
 
-  background: rgb(0, 0, 0);
+  background: #0b0f19;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -26,7 +43,7 @@ body {
   line-height: 32px;
 
   margin: 0;
-  color: rgb(1000, 1000, 1000);
+  color: #ffffff;
 
   @media (max-width: 1024px) {
     font-size: 15px;
@@ -161,4 +178,57 @@ svg {
       border-radius: 4px;
     }
   }
+}
+
+/* Custom utility classes for Tailwind v4 */
+@utility bg-ink {
+  background-color: theme(--color-ink);
+}
+
+@utility bg-slate {
+  background-color: theme(--color-slate);
+}
+
+@utility bg-panel {
+  background-color: theme(--color-panel);
+}
+
+@utility text-accent {
+  color: theme(--color-accent);
+}
+
+@utility border-line {
+  border-color: theme(--color-line);
+}
+
+@utility max-w-wrapper {
+  max-width: theme(--max-width-wrapper);
+}
+
+@utility max-w-prose {
+  max-width: theme(--max-width-prose);
+}
+
+@utility rounded-xl2 {
+  border-radius: theme(--border-radius-xl2);
+}
+
+@utility shadow-card {
+  box-shadow: theme(--box-shadow-card);
+}
+
+@utility shadow-subtle {
+  box-shadow: theme(--box-shadow-subtle);
+}
+
+/* Prose defaults for single post */
+.prose {
+  --tw-prose-body: #e6eaf2;
+  --tw-prose-headings: #fff;
+  --tw-prose-links: #12b5e5;
+  --tw-prose-bold: #fff;
+  --tw-prose-quotes: #e6eaf2;
+  --tw-prose-code: #e6eaf2;
+  --tw-prose-th-borders: #22283a;
+  --tw-prose-td-borders: #22283a;
 }

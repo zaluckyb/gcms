@@ -69,6 +69,7 @@ export interface Config {
   collections: {
     users: User;
     media: Media;
+    posts: Post;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
@@ -77,12 +78,13 @@ export interface Config {
   collectionsSelect: {
     users: UsersSelect<false> | UsersSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
+    posts: PostsSelect<false> | PostsSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
     'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
   };
   db: {
-    defaultIDType: string;
+    defaultIDType: number;
   };
   globals: {};
   globalsSelect: {};
@@ -118,7 +120,7 @@ export interface UserAuthOperations {
  * via the `definition` "users".
  */
 export interface User {
-  id: string;
+  id: number;
   updatedAt: string;
   createdAt: string;
   email: string;
@@ -142,7 +144,7 @@ export interface User {
  * via the `definition` "media".
  */
 export interface Media {
-  id: string;
+  id: number;
   alt: string;
   updatedAt: string;
   createdAt: string;
@@ -158,23 +160,202 @@ export interface Media {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "posts".
+ */
+export interface Post {
+  id: number;
+  /**
+   * Main title (headline) of the article.
+   */
+  headline: string;
+  /**
+   * URL-friendly unique slug
+   */
+  slug?: string | null;
+  /**
+   * Full article content in rich text.
+   */
+  articleBody?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  /**
+   * Section or category where the article appears.
+   */
+  articleSection?: string | null;
+  /**
+   * Place and/or date of publication.
+   */
+  dateline?: string | null;
+  /**
+   * Page where the work starts (print).
+   */
+  pageStart?: number | null;
+  /**
+   * Page where the work ends (print).
+   */
+  pageEnd?: number | null;
+  /**
+   * Page range description.
+   */
+  pagination?: string | null;
+  /**
+   * Content suitable for spoken results / voice assistants.
+   */
+  speakable?: string | null;
+  /**
+   * Approximate word count of the article.
+   */
+  wordCount?: number | null;
+  /**
+   * Subject matter of the content.
+   */
+  about?: string | null;
+  /**
+   * Short summary of the article.
+   */
+  abstract?: string | null;
+  /**
+   * Human sensory mode used to perceive content.
+   */
+  accessMode?: string | null;
+  /**
+   * Features that improve accessibility.
+   */
+  accessibilityFeature?: string | null;
+  /**
+   * Author of the creative work.
+   */
+  author?: (number | null) | User;
+  /**
+   * Publication date.
+   */
+  datePublished?: string | null;
+  /**
+   * Last modified date.
+   */
+  dateModified?: string | null;
+  /**
+   * Publisher of the work.
+   */
+  publisher?: string | null;
+  /**
+   * Language of the content (code or name).
+   */
+  inLanguage?: string | null;
+  /**
+   * Keywords or tags.
+   */
+  keywords?:
+    | {
+        /**
+         * Keyword or tag value.
+         */
+        keyword?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * License information or URL.
+   */
+  license?: string | null;
+  /**
+   * User comments for the article.
+   */
+  comments?:
+    | {
+        /**
+         * Comment author.
+         */
+        author?: (number | null) | User;
+        /**
+         * Comment content.
+         */
+        content: string;
+        /**
+         * Comment creation date.
+         */
+        createdAt?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Number of comments.
+   */
+  commentCount?: number | null;
+  /**
+   * Canonical entity referenced by the page.
+   */
+  mainEntityOfPage?: string | null;
+  /**
+   * Publication or larger work this article belongs to.
+   */
+  isPartOf?: string | null;
+  /**
+   * Banner image for the article.
+   */
+  image?: (number | null) | Media;
+  /**
+   * Canonical URL of the article.
+   */
+  url?: string | null;
+  /**
+   * Short description/summary of the article.
+   */
+  description?: string | null;
+  /**
+   * Identifier used for structured data.
+   */
+  identifier?: string | null;
+  /**
+   * URLs to other profiles/pages of the author or work.
+   */
+  sameAs?:
+    | {
+        /**
+         * External URL.
+         */
+        url?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-locked-documents".
  */
 export interface PayloadLockedDocument {
-  id: string;
+  id: number;
   document?:
     | ({
         relationTo: 'users';
-        value: string | User;
+        value: number | User;
       } | null)
     | ({
         relationTo: 'media';
-        value: string | Media;
+        value: number | Media;
+      } | null)
+    | ({
+        relationTo: 'posts';
+        value: number | Post;
       } | null);
   globalSlug?: string | null;
   user: {
     relationTo: 'users';
-    value: string | User;
+    value: number | User;
   };
   updatedAt: string;
   createdAt: string;
@@ -184,10 +365,10 @@ export interface PayloadLockedDocument {
  * via the `definition` "payload-preferences".
  */
 export interface PayloadPreference {
-  id: string;
+  id: number;
   user: {
     relationTo: 'users';
-    value: string | User;
+    value: number | User;
   };
   key?: string | null;
   value?:
@@ -207,7 +388,7 @@ export interface PayloadPreference {
  * via the `definition` "payload-migrations".
  */
 export interface PayloadMigration {
-  id: string;
+  id: number;
   name?: string | null;
   batch?: number | null;
   updatedAt: string;
@@ -252,6 +433,61 @@ export interface MediaSelect<T extends boolean = true> {
   height?: T;
   focalX?: T;
   focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "posts_select".
+ */
+export interface PostsSelect<T extends boolean = true> {
+  headline?: T;
+  slug?: T;
+  articleBody?: T;
+  articleSection?: T;
+  dateline?: T;
+  pageStart?: T;
+  pageEnd?: T;
+  pagination?: T;
+  speakable?: T;
+  wordCount?: T;
+  about?: T;
+  abstract?: T;
+  accessMode?: T;
+  accessibilityFeature?: T;
+  author?: T;
+  datePublished?: T;
+  dateModified?: T;
+  publisher?: T;
+  inLanguage?: T;
+  keywords?:
+    | T
+    | {
+        keyword?: T;
+        id?: T;
+      };
+  license?: T;
+  comments?:
+    | T
+    | {
+        author?: T;
+        content?: T;
+        createdAt?: T;
+        id?: T;
+      };
+  commentCount?: T;
+  mainEntityOfPage?: T;
+  isPartOf?: T;
+  image?: T;
+  url?: T;
+  description?: T;
+  identifier?: T;
+  sameAs?:
+    | T
+    | {
+        url?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
