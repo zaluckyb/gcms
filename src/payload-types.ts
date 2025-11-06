@@ -70,6 +70,11 @@ export interface Config {
     users: User;
     media: Media;
     posts: Post;
+    tags: Tag;
+    categories: Category;
+    personas: Persona;
+    contentPlans: ContentPlan;
+    contentPlanTransactions: ContentPlanTransaction;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
@@ -79,6 +84,11 @@ export interface Config {
     users: UsersSelect<false> | UsersSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     posts: PostsSelect<false> | PostsSelect<true>;
+    tags: TagsSelect<false> | TagsSelect<true>;
+    categories: CategoriesSelect<false> | CategoriesSelect<true>;
+    personas: PersonasSelect<false> | PersonasSelect<true>;
+    contentPlans: ContentPlansSelect<false> | ContentPlansSelect<true>;
+    contentPlanTransactions: ContentPlanTransactionsSelect<false> | ContentPlanTransactionsSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
     'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
@@ -86,8 +96,12 @@ export interface Config {
   db: {
     defaultIDType: number;
   };
-  globals: {};
-  globalsSelect: {};
+  globals: {
+    site: Site;
+  };
+  globalsSelect: {
+    site: SiteSelect<false> | SiteSelect<true>;
+  };
   locale: null;
   user: User & {
     collection: 'users';
@@ -121,6 +135,45 @@ export interface UserAuthOperations {
  */
 export interface User {
   id: number;
+  /**
+   * User role for access control
+   */
+  role: 'admin' | 'editor' | 'user';
+  /**
+   * Select a persona and optionally customize its profile for this user
+   */
+  persona?: {
+    /**
+     * Choose a base persona from the predefined list
+     */
+    selectedPersona?: (number | null) | Persona;
+    /**
+     * Snapshot of persona details that you can customize per user
+     */
+    profile?: {
+      name?: string | null;
+      category?: string | null;
+      focus?: string | null;
+      strengths?:
+        | {
+            value: string;
+            id?: string | null;
+          }[]
+        | null;
+      uses?:
+        | {
+            value: string;
+            id?: string | null;
+          }[]
+        | null;
+      personality?: {
+        tone?: string | null;
+        voice_style?: string | null;
+        motivations?: string | null;
+        audience_perception?: string | null;
+      };
+    };
+  };
   updatedAt: string;
   createdAt: string;
   email: string;
@@ -138,6 +191,53 @@ export interface User {
       }[]
     | null;
   password?: string | null;
+}
+/**
+ * Manage predefined personas selectable on user profiles
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "personas".
+ */
+export interface Persona {
+  id: number;
+  /**
+   * Persona name (e.g., Community Copywriter)
+   */
+  name: string;
+  /**
+   * Category (e.g., Emerging / Niche)
+   */
+  category?: string | null;
+  /**
+   * Primary focus of the persona
+   */
+  focus?: string | null;
+  /**
+   * Key strengths of the persona
+   */
+  strengths?:
+    | {
+        value: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Typical use cases
+   */
+  uses?:
+    | {
+        value: string;
+        id?: string | null;
+      }[]
+    | null;
+  personality?: {
+    tone?: string | null;
+    voice_style?: string | null;
+    motivations?: string | null;
+    audience_perception?: string | null;
+  };
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -159,23 +259,33 @@ export interface Media {
   focalY?: number | null;
 }
 /**
+ * Manage blog posts and articles
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "posts".
  */
 export interface Post {
   id: number;
   /**
-   * Main title (headline) of the article.
+   * The main title of the post
    */
-  headline: string;
+  title: string;
   /**
-   * URL-friendly unique slug
+   * URL-friendly version of the title
    */
-  slug?: string | null;
+  slug: string;
   /**
-   * Full article content in rich text.
+   * Brief description of the post (used for meta description if not overridden)
    */
-  articleBody?: {
+  excerpt?: string | null;
+  /**
+   * Main image for the post (used for Open Graph and Twitter cards)
+   */
+  featuredImage?: (number | null) | Media;
+  /**
+   * The main content of the post
+   */
+  content: {
     root: {
       type: string;
       children: {
@@ -189,147 +299,335 @@ export interface Post {
       version: number;
     };
     [k: string]: unknown;
-  } | null;
+  };
   /**
-   * Section or category where the article appears.
+   * Temporary draft text for the post
    */
-  articleSection?: string | null;
+  postContentDraft?: string | null;
   /**
-   * Place and/or date of publication.
-   */
-  dateline?: string | null;
-  /**
-   * Page where the work starts (print).
-   */
-  pageStart?: number | null;
-  /**
-   * Page where the work ends (print).
-   */
-  pageEnd?: number | null;
-  /**
-   * Page range description.
-   */
-  pagination?: string | null;
-  /**
-   * Content suitable for spoken results / voice assistants.
-   */
-  speakable?: string | null;
-  /**
-   * Approximate word count of the article.
-   */
-  wordCount?: number | null;
-  /**
-   * Subject matter of the content.
-   */
-  about?: string | null;
-  /**
-   * Short summary of the article.
-   */
-  abstract?: string | null;
-  /**
-   * Human sensory mode used to perceive content.
-   */
-  accessMode?: string | null;
-  /**
-   * Features that improve accessibility.
-   */
-  accessibilityFeature?: string | null;
-  /**
-   * Author of the creative work.
+   * Author of this post
    */
   author?: (number | null) | User;
   /**
-   * Publication date.
+   * Tags associated with this post
+   */
+  tags?: (number | Tag)[] | null;
+  /**
+   * Categories for this post
+   */
+  categories?: (number | Category)[] | null;
+  /**
+   * When this post was first published
    */
   datePublished?: string | null;
   /**
-   * Last modified date.
+   * When this post was last modified
    */
   dateModified?: string | null;
   /**
-   * Publisher of the work.
+   * Target publish date (from Content Plan)
    */
-  publisher?: string | null;
+  plannedPublishDate?: string | null;
   /**
-   * Language of the content (code or name).
+   * Publication status of the post
    */
-  inLanguage?: string | null;
+  status: 'draft' | 'published' | 'archived';
   /**
-   * Keywords or tags.
+   * Automatically computed metadata
    */
-  keywords?:
+  metadata?: {
+    /**
+     * Estimated reading time in minutes
+     */
+    readingTime?: number | null;
+    /**
+     * Total word count
+     */
+    wordCount?: number | null;
+    /**
+     * Last modification timestamp
+     */
+    lastModified?: string | null;
+  };
+  /**
+   * Override site-wide SEO settings for this specific post
+   */
+  seo?: {
+    /**
+     * Override the page title (defaults to post title)
+     */
+    pageTitle?: string | null;
+    /**
+     * Override meta description (defaults to excerpt)
+     */
+    metaDescription?: string | null;
+    /**
+     * Comma-separated keywords for this post
+     */
+    metaKeywords?: string | null;
+    /**
+     * Override canonical URL (defaults to post URL)
+     */
+    canonicalURL?: string | null;
+  };
+  /**
+   * Override Open Graph settings
+   */
+  openGraph?: {
+    /**
+     * Override Open Graph title
+     */
+    ogTitle?: string | null;
+    /**
+     * Override Open Graph description
+     */
+    ogDescription?: string | null;
+    /**
+     * Override Open Graph image (defaults to featured image)
+     */
+    ogImage?: (number | null) | Media;
+  };
+  /**
+   * Override Twitter card settings
+   */
+  twitter?: {
+    /**
+     * Override Twitter card title
+     */
+    twitterTitle?: string | null;
+    /**
+     * Override Twitter card description
+     */
+    twitterDescription?: string | null;
+    /**
+     * Override Twitter card image (defaults to featured image)
+     */
+    twitterImage?: (number | null) | Media;
+  };
+  /**
+   * Override structured data settings
+   */
+  jsonld?: {
+    /**
+     * Override schema headline (defaults to title)
+     */
+    headline?: string | null;
+    /**
+     * Override schema description
+     */
+    schemaDescription?: string | null;
+    /**
+     * Automatically calculated word count
+     */
+    wordCount?: number | null;
+  };
+  seoComputed?:
     | {
-        /**
-         * Keyword or tag value.
-         */
-        keyword?: string | null;
-        id?: string | null;
-      }[]
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
     | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Manage tags for posts
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tags".
+ */
+export interface Tag {
+  id: number;
   /**
-   * License information or URL.
+   * The name of the tag
    */
-  license?: string | null;
+  name: string;
   /**
-   * User comments for the article.
+   * URL-friendly version of the tag name
    */
-  comments?:
-    | {
-        /**
-         * Comment author.
-         */
-        author?: (number | null) | User;
-        /**
-         * Comment content.
-         */
-        content: string;
-        /**
-         * Comment creation date.
-         */
-        createdAt?: string | null;
-        id?: string | null;
-      }[]
-    | null;
+  slug: string;
   /**
-   * Number of comments.
-   */
-  commentCount?: number | null;
-  /**
-   * Canonical entity referenced by the page.
-   */
-  mainEntityOfPage?: string | null;
-  /**
-   * Publication or larger work this article belongs to.
-   */
-  isPartOf?: string | null;
-  /**
-   * Banner image for the article.
-   */
-  image?: (number | null) | Media;
-  /**
-   * Canonical URL of the article.
-   */
-  url?: string | null;
-  /**
-   * Short description/summary of the article.
+   * Optional description for the tag
    */
   description?: string | null;
   /**
-   * Identifier used for structured data.
+   * Hex color code for the tag (e.g., #FF5733)
    */
-  identifier?: string | null;
+  color?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Manage categories for posts
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "categories".
+ */
+export interface Category {
+  id: number;
   /**
-   * URLs to other profiles/pages of the author or work.
+   * The name of the category
    */
-  sameAs?:
+  name: string;
+  /**
+   * URL-friendly version of the category name
+   */
+  slug: string;
+  /**
+   * Optional description for the category
+   */
+  description?: string | null;
+  /**
+   * Hex color code for the category (e.g., #FF5733)
+   */
+  color?: string | null;
+  /**
+   * Parent category (for hierarchical categories)
+   */
+  parent?: (number | null) | Category;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Content planning and organization
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "contentPlans".
+ */
+export interface ContentPlan {
+  id: number;
+  owner: number | User;
+  status?: ('draft' | 'active' | 'completed' | 'archived') | null;
+  /**
+   * Main topic or theme for this content plan
+   */
+  topic: string;
+  /**
+   * Individual content pieces within this plan
+   */
+  contentItems?:
     | {
         /**
-         * External URL.
+         * Title of the content piece (max 200 characters)
          */
-        url?: string | null;
+        title: string;
+        /**
+         * URL-friendly version of the title (auto-generated, but editable)
+         */
+        slug: string;
+        /**
+         * Detailed description of the content (max 1000 characters, supports markdown)
+         */
+        description?: string | null;
+        /**
+         * SEO keywords and tags for this content
+         */
+        keywords?:
+          | {
+              keyword: string;
+              id?: string | null;
+            }[]
+          | null;
+        /**
+         * Generation prompt to guide content creation
+         */
+        prompt?: string | null;
+        /**
+         * Intended audience for this piece
+         */
+        audience?: string | null;
+        /**
+         * Primary goal or outcome for this content
+         */
+        goal?: string | null;
+        /**
+         * Target region or locale
+         */
+        region?: string | null;
+        /**
+         * Target word count for the piece
+         */
+        word_count?: number | null;
+        /**
+         * One or more prompts for generating visuals
+         */
+        image_prompts?:
+          | {
+              prompt: string;
+              id?: string | null;
+            }[]
+          | null;
         id?: string | null;
       }[]
     | null;
+  /**
+   * Brief description of this content plan
+   */
+  description?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  /**
+   * Additional notes and planning details
+   */
+  notes?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Transaction logs for content plan operations
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "contentPlanTransactions".
+ */
+export interface ContentPlanTransaction {
+  id: number;
+  /**
+   * Unique identifier for the transaction
+   */
+  transactionId: string;
+  /**
+   * ID of the content plan being modified
+   */
+  contentPlanId: number;
+  /**
+   * Type of operation being performed
+   */
+  operation: 'save_generated' | 'update' | 'delete';
+  /**
+   * Current status of the transaction
+   */
+  status: 'pending' | 'in_progress' | 'committed' | 'failed' | 'rolled_back';
+  /**
+   * Error message if the transaction failed
+   */
+  errorDetails?: string | null;
+  /**
+   * Additional metadata about the transaction
+   */
+  metadata?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Number of retry attempts made
+   */
+  retryCount?: number | null;
+  /**
+   * Total execution time in milliseconds
+   */
+  executionTimeMs?: number | null;
+  /**
+   * When the transaction was completed (success or failure)
+   */
+  completedAt?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -351,6 +649,26 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'posts';
         value: number | Post;
+      } | null)
+    | ({
+        relationTo: 'tags';
+        value: number | Tag;
+      } | null)
+    | ({
+        relationTo: 'categories';
+        value: number | Category;
+      } | null)
+    | ({
+        relationTo: 'personas';
+        value: number | Persona;
+      } | null)
+    | ({
+        relationTo: 'contentPlans';
+        value: number | ContentPlan;
+      } | null)
+    | ({
+        relationTo: 'contentPlanTransactions';
+        value: number | ContentPlanTransaction;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -399,6 +717,39 @@ export interface PayloadMigration {
  * via the `definition` "users_select".
  */
 export interface UsersSelect<T extends boolean = true> {
+  role?: T;
+  persona?:
+    | T
+    | {
+        selectedPersona?: T;
+        profile?:
+          | T
+          | {
+              name?: T;
+              category?: T;
+              focus?: T;
+              strengths?:
+                | T
+                | {
+                    value?: T;
+                    id?: T;
+                  };
+              uses?:
+                | T
+                | {
+                    value?: T;
+                    id?: T;
+                  };
+              personality?:
+                | T
+                | {
+                    tone?: T;
+                    voice_style?: T;
+                    motivations?: T;
+                    audience_perception?: T;
+                  };
+            };
+      };
   updatedAt?: T;
   createdAt?: T;
   email?: T;
@@ -439,53 +790,169 @@ export interface MediaSelect<T extends boolean = true> {
  * via the `definition` "posts_select".
  */
 export interface PostsSelect<T extends boolean = true> {
-  headline?: T;
+  title?: T;
   slug?: T;
-  articleBody?: T;
-  articleSection?: T;
-  dateline?: T;
-  pageStart?: T;
-  pageEnd?: T;
-  pagination?: T;
-  speakable?: T;
-  wordCount?: T;
-  about?: T;
-  abstract?: T;
-  accessMode?: T;
-  accessibilityFeature?: T;
+  excerpt?: T;
+  featuredImage?: T;
+  content?: T;
+  postContentDraft?: T;
   author?: T;
+  tags?: T;
+  categories?: T;
   datePublished?: T;
   dateModified?: T;
-  publisher?: T;
-  inLanguage?: T;
-  keywords?:
+  plannedPublishDate?: T;
+  status?: T;
+  metadata?:
     | T
     | {
-        keyword?: T;
-        id?: T;
+        readingTime?: T;
+        wordCount?: T;
+        lastModified?: T;
       };
-  license?: T;
-  comments?:
+  seo?:
     | T
     | {
-        author?: T;
-        content?: T;
-        createdAt?: T;
-        id?: T;
+        pageTitle?: T;
+        metaDescription?: T;
+        metaKeywords?: T;
+        canonicalURL?: T;
       };
-  commentCount?: T;
-  mainEntityOfPage?: T;
-  isPartOf?: T;
-  image?: T;
-  url?: T;
+  openGraph?:
+    | T
+    | {
+        ogTitle?: T;
+        ogDescription?: T;
+        ogImage?: T;
+      };
+  twitter?:
+    | T
+    | {
+        twitterTitle?: T;
+        twitterDescription?: T;
+        twitterImage?: T;
+      };
+  jsonld?:
+    | T
+    | {
+        headline?: T;
+        schemaDescription?: T;
+        wordCount?: T;
+      };
+  seoComputed?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tags_select".
+ */
+export interface TagsSelect<T extends boolean = true> {
+  name?: T;
+  slug?: T;
   description?: T;
-  identifier?: T;
-  sameAs?:
+  color?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "categories_select".
+ */
+export interface CategoriesSelect<T extends boolean = true> {
+  name?: T;
+  slug?: T;
+  description?: T;
+  color?: T;
+  parent?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "personas_select".
+ */
+export interface PersonasSelect<T extends boolean = true> {
+  name?: T;
+  category?: T;
+  focus?: T;
+  strengths?:
     | T
     | {
-        url?: T;
+        value?: T;
         id?: T;
       };
+  uses?:
+    | T
+    | {
+        value?: T;
+        id?: T;
+      };
+  personality?:
+    | T
+    | {
+        tone?: T;
+        voice_style?: T;
+        motivations?: T;
+        audience_perception?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "contentPlans_select".
+ */
+export interface ContentPlansSelect<T extends boolean = true> {
+  owner?: T;
+  status?: T;
+  topic?: T;
+  contentItems?:
+    | T
+    | {
+        title?: T;
+        slug?: T;
+        description?: T;
+        keywords?:
+          | T
+          | {
+              keyword?: T;
+              id?: T;
+            };
+        prompt?: T;
+        audience?: T;
+        goal?: T;
+        region?: T;
+        word_count?: T;
+        image_prompts?:
+          | T
+          | {
+              prompt?: T;
+              id?: T;
+            };
+        id?: T;
+      };
+  description?: T;
+  startDate?: T;
+  endDate?: T;
+  notes?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "contentPlanTransactions_select".
+ */
+export interface ContentPlanTransactionsSelect<T extends boolean = true> {
+  transactionId?: T;
+  contentPlanId?: T;
+  operation?: T;
+  status?: T;
+  errorDetails?: T;
+  metadata?: T;
+  retryCount?: T;
+  executionTimeMs?: T;
+  completedAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -520,6 +987,353 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   batch?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * Global site settings and defaults for SEO, social media, and performance
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site".
+ */
+export interface Site {
+  id: number;
+  /**
+   * The name of your website
+   */
+  siteName: string;
+  /**
+   * The base URL of your website (without trailing slash)
+   */
+  siteUrl: string;
+  /**
+   * Default description used for meta tags and social media
+   */
+  siteDescription?: string | null;
+  /**
+   * Short tagline or slogan for your site
+   */
+  siteTagline?: string | null;
+  seoDefaults?: {
+    /**
+     * Default author for meta tags
+     */
+    metaAuthor?: string | null;
+    /**
+     * Default robots directive for search engines
+     */
+    robots?: string | null;
+    /**
+     * Character encoding for the site
+     */
+    charset?: string | null;
+    /**
+     * Default viewport meta tag
+     */
+    viewport?: string | null;
+    /**
+     * Theme color for mobile browsers
+     */
+    themeColor?: string | null;
+    /**
+     * Default language code
+     */
+    language?: string | null;
+    /**
+     * How often search engines should revisit
+     */
+    revisitAfter?: string | null;
+  };
+  openGraphDefaults?: {
+    /**
+     * Site name for Open Graph
+     */
+    ogSiteName?: string | null;
+    /**
+     * Default locale for Open Graph
+     */
+    ogLocale?: string | null;
+    /**
+     * Default Open Graph type
+     */
+    ogType?: ('website' | 'article') | null;
+    /**
+     * Default image for social media sharing (1200x630px recommended)
+     */
+    defaultOgImage?: (number | null) | Media;
+    /**
+     * Alt text for the default Open Graph image
+     */
+    defaultOgImageAlt?: string | null;
+  };
+  twitterDefaults?: {
+    /**
+     * Default Twitter Card type
+     */
+    twitterCard?: ('summary_large_image' | 'summary') | null;
+    /**
+     * Twitter handle for the site (with @)
+     */
+    twitterSite?: string | null;
+    /**
+     * Default Twitter handle for content creator (with @)
+     */
+    twitterCreator?: string | null;
+  };
+  schemaDefaults?: {
+    /**
+     * Enable JSON-LD structured data generation
+     */
+    generateJSONLD?: boolean | null;
+    /**
+     * Default schema type for articles
+     */
+    defaultSchemaType?: ('Article' | 'BlogPosting' | 'NewsArticle') | null;
+    /**
+     * Default language for schema markup
+     */
+    inLanguage?: string | null;
+    /**
+     * Whether content is accessible for free
+     */
+    isAccessibleForFree?: boolean | null;
+    organization?: {
+      /**
+       * Organization name
+       */
+      name?: string | null;
+      /**
+       * Organization website URL
+       */
+      url?: string | null;
+      /**
+       * Organization logo
+       */
+      logo?: (number | null) | Media;
+      /**
+       * Social media and other profile URLs
+       */
+      sameAs?:
+        | {
+            /**
+             * Social media profile URL
+             */
+            url?: string | null;
+            id?: string | null;
+          }[]
+        | null;
+    };
+    publisher?: {
+      /**
+       * Publisher name
+       */
+      name?: string | null;
+      /**
+       * Publisher logo
+       */
+      logo?: (number | null) | Media;
+    };
+    webSite?: {
+      /**
+       * Website URL
+       */
+      url?: string | null;
+      /**
+       * Website name
+       */
+      name?: string | null;
+      searchAction?: {
+        /**
+         * Search URL template
+         */
+        target?: string | null;
+        /**
+         * Query input specification
+         */
+        queryInput?: string | null;
+      };
+    };
+  };
+  /**
+   * Favicon (.ico file)
+   */
+  faviconICO?: (number | null) | Media;
+  /**
+   * SVG icon for modern browsers
+   */
+  iconSVG?: (number | null) | Media;
+  /**
+   * Apple touch icon (180x180px)
+   */
+  appleTouchIcon?: (number | null) | Media;
+  /**
+   * Web app manifest file
+   */
+  webAppManifest?: (number | null) | Media;
+  /**
+   * CDN domain for static assets
+   */
+  cdnDomain?: string | null;
+  /**
+   * Domain for analytics or ads
+   */
+  analyticsOrAdsDomain?: string | null;
+  /**
+   * Domains to establish early connections to
+   */
+  preconnect?:
+    | {
+        /**
+         * URL to preconnect to
+         */
+        href?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Domains to prefetch DNS for
+   */
+  dnsPrefetch?:
+    | {
+        /**
+         * Domain to prefetch DNS for
+         */
+        href?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * RSS feed URL
+   */
+  rssLink?: string | null;
+  /**
+   * Google Search Console verification code
+   */
+  googleSiteVerification?: string | null;
+  /**
+   * Bing Webmaster Tools verification code
+   */
+  bingMsValidate?: string | null;
+  /**
+   * Yandex Webmaster verification code
+   */
+  yandexVerification?: string | null;
+  /**
+   * Google Tag Manager ID (GTM-XXXXXXX)
+   */
+  gtmID?: string | null;
+  /**
+   * Google Analytics Measurement ID (G-XXXXXXXXXX)
+   */
+  gaMeasurementID?: string | null;
+  /**
+   * Facebook Pixel ID
+   */
+  facebookPixelID?: string | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site_select".
+ */
+export interface SiteSelect<T extends boolean = true> {
+  siteName?: T;
+  siteUrl?: T;
+  siteDescription?: T;
+  siteTagline?: T;
+  seoDefaults?:
+    | T
+    | {
+        metaAuthor?: T;
+        robots?: T;
+        charset?: T;
+        viewport?: T;
+        themeColor?: T;
+        language?: T;
+        revisitAfter?: T;
+      };
+  openGraphDefaults?:
+    | T
+    | {
+        ogSiteName?: T;
+        ogLocale?: T;
+        ogType?: T;
+        defaultOgImage?: T;
+        defaultOgImageAlt?: T;
+      };
+  twitterDefaults?:
+    | T
+    | {
+        twitterCard?: T;
+        twitterSite?: T;
+        twitterCreator?: T;
+      };
+  schemaDefaults?:
+    | T
+    | {
+        generateJSONLD?: T;
+        defaultSchemaType?: T;
+        inLanguage?: T;
+        isAccessibleForFree?: T;
+        organization?:
+          | T
+          | {
+              name?: T;
+              url?: T;
+              logo?: T;
+              sameAs?:
+                | T
+                | {
+                    url?: T;
+                    id?: T;
+                  };
+            };
+        publisher?:
+          | T
+          | {
+              name?: T;
+              logo?: T;
+            };
+        webSite?:
+          | T
+          | {
+              url?: T;
+              name?: T;
+              searchAction?:
+                | T
+                | {
+                    target?: T;
+                    queryInput?: T;
+                  };
+            };
+      };
+  faviconICO?: T;
+  iconSVG?: T;
+  appleTouchIcon?: T;
+  webAppManifest?: T;
+  cdnDomain?: T;
+  analyticsOrAdsDomain?: T;
+  preconnect?:
+    | T
+    | {
+        href?: T;
+        id?: T;
+      };
+  dnsPrefetch?:
+    | T
+    | {
+        href?: T;
+        id?: T;
+      };
+  rssLink?: T;
+  googleSiteVerification?: T;
+  bingMsValidate?: T;
+  yandexVerification?: T;
+  gtmID?: T;
+  gaMeasurementID?: T;
+  facebookPixelID?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

@@ -27,11 +27,11 @@ export async function GET(req: Request): Promise<Response> {
   }
 
   // Enable Next.js draft mode
-  draftMode().enable()
+  (await draftMode()).enable()
 
   // Persist the admin session token so SSR queries can authenticate
   if (token) {
-    cookies().set('payload-token', token, {
+    (await cookies()).set('payload-token', token, {
       httpOnly: true,
       path: '/',
       sameSite: 'lax',

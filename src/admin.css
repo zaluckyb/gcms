@@ -1,0 +1,10 @@
+/* Hide external Gravatar avatar images in Payload Admin */
+img[src*="gravatar.com/avatar"] {
+  display: none !important;
+}
+
+/* Provide a neutral placeholder circle */
+.payload__nav .nav__user, .payload__nav .user {
+  background: var(--theme-elevation-100);
+  border-radius: 9999px;
+}

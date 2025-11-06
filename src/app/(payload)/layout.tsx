@@ -9,6 +9,9 @@ import React from 'react'
 import { importMap } from './admin/importMap.js'
 import './custom.scss'
 
+// Import performance fix for admin routes
+import '@/lib/performance-fix'
+
 type Args = {
   children: React.ReactNode
 }

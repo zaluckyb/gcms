@@ -25,72 +25,73 @@ export async function GET(req: Request): Promise<Response> {
 
     // Minimal valid Lexical rich text content for the article body
     const articleBody = {
-      root: {
-        type: 'root',
-        format: '',
-        indent: 0,
-        version: 1,
-        children: [
-          {
-            type: 'heading',
-            tag: 'h1',
-            format: '',
-            indent: 0,
-            version: 1,
-            children: [
-              {
-                type: 'text',
-                text: 'Dummy: Exploring Payload CMS with Next.js',
-                format: 0,
-                mode: 'normal',
-                style: '',
-                detail: 0,
-                version: 1,
-              },
-            ],
-          },
-          {
-            type: 'paragraph',
-            format: '',
-            indent: 0,
-            version: 1,
-            children: [
-              {
-                type: 'text',
-                text: 'This article demonstrates how content looks when populated. It includes headings, paragraphs, keywords, and comments to mimic a realistic post.',
-                format: 0,
-                mode: 'normal',
-                style: '',
-                detail: 0,
-                version: 1,
-              },
-            ],
-          },
-          {
-            type: 'paragraph',
-            format: '',
-            indent: 0,
-            version: 1,
-            children: [
-              {
-                type: 'text',
-                text: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
-                format: 0,
-                mode: 'normal',
-                style: '',
-                detail: 0,
-                version: 1,
-              },
-            ],
-          },
-        ],
-      },
-    }
+       root: {
+         type: 'root',
+         format: '',
+         indent: 0,
+         version: 1,
+         children: [
+           {
+             type: 'heading',
+             tag: 'h1',
+             format: '',
+             indent: 0,
+             version: 1,
+             children: [
+               {
+                 type: 'text',
+                 text: 'Dummy: Exploring Payload CMS with Next.js',
+                 format: 0,
+                 mode: 'normal',
+                 style: '',
+                 detail: 0,
+                 version: 1,
+               },
+             ],
+           },
+           {
+             type: 'paragraph',
+             format: '',
+             indent: 0,
+             version: 1,
+             children: [
+               {
+                 type: 'text',
+                 text: 'This article demonstrates how content looks when populated. It includes headings, paragraphs, keywords, and comments to mimic a realistic post.',
+                 format: 0,
+                 mode: 'normal',
+                 style: '',
+                 detail: 0,
+                 version: 1,
+               },
+             ],
+           },
+           {
+             type: 'paragraph',
+             format: '',
+             indent: 0,
+             version: 1,
+             children: [
+               {
+                 type: 'text',
+                 text: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
+                 format: 0,
+                 mode: 'normal',
+                 style: '',
+                 detail: 0,
+                 version: 1,
+               },
+             ],
+           },
+         ],
+       },
+    } as const
 
-    const nowISO = new Date().toISOString()
+     const nowISO = new Date().toISOString()
 
+    const d: any = doc
     const data = {
-      headline: doc.headline || 'Dummy Headline: Payload + Next.js',
+      headline: d.headline || 'Dummy Headline: Payload + Next.js',
       abstract:
         'Quick summary: demonstrating a realistic article layout with filled fields, comments, and metadata.',
       articleSection: 'Technology',
@@ -103,9 +104,9 @@ export async function GET(req: Request): Promise<Response> {
       about: 'Structured content and headless CMS integration',
       accessMode: 'textual',
       accessibilityFeature: 'altText,captions,highContrast',
-      articleBody,
-      author: doc.author || undefined,
-      datePublished: doc.datePublished || nowISO,
+      articleBody: articleBody as any,
+      author: d.author || undefined,
+      datePublished: d.datePublished || nowISO,
       dateModified: nowISO,
       publisher: 'GCMS Publishing',
       inLanguage: 'en',

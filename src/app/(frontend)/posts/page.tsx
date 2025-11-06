@@ -1,13 +1,36 @@
 import React from 'react'
 import { getPayload } from 'payload'
-import { headers as getHeaders, draftMode } from 'next/headers.js'
+import { headers as getHeaders, draftMode } from 'next/headers'
 import config from '@/payload.config'
+import { getSiteConfigSafely } from '@/lib/fallback-handler'
 import HeroDark from '@/components/HeroDark'
 import Section from '@/components/Section'
 import Container from '@/components/Container'
 import PostCard from '@/components/PostCard'
 
-export const metadata = { title: 'Posts' }
+export async function generateMetadata() {
+  try {
+    const payload = await getPayload({ config: await config })
+    const siteConfig = await getSiteConfigSafely(payload)
+    
+    return {
+      title: 'Posts',
+      description: 'Browse our latest articles and insights',
+      alternates: {
+        canonical: '/posts',
+      },
+      openGraph: {
+        title: `Posts | ${siteConfig.siteName}`,
+        description: 'Browse our latest articles and insights',
+        url: `${siteConfig.siteUrl}/posts`,
+        type: 'website',
+      },
+    }
+  } catch (error) {
+    console.error('Error generating posts metadata:', error)
+    return { title: 'Posts' }
+  }
+}
 
 export default async function PostsIndexPage() {
   const headers = await getHeaders()

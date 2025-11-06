@@ -21,6 +21,10 @@ import { StrikethroughFeatureClient as StrikethroughFeatureClient_e70f5e05f09f93
 import { UnderlineFeatureClient as UnderlineFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { BoldFeatureClient as BoldFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { ItalicFeatureClient as ItalicFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
+import { default as default_bb5842a3faf9dec2ad51cca18e335f9b } from '@/components/admin/GenerateSEOButton'
+import { default as default_e6d4dadec655c9986798da4569523591 } from '@/components/admin/GenerateArticleButton'
+import { default as default_dc8f6ece5c73a284af17d95b7b8df379 } from '@/components/admin/ContentItemRowLabel'
+import { default as default_fe656e46f944057e20584ba9a7f4e4d0 } from '@/components/admin/PublishContentItemsButton'
 
 export const importMap = {
   "@payloadcms/richtext-lexical/rsc#RscEntryLexicalCell": RscEntryLexicalCell_44fe37237e0ebf4470c9990d8cb7b07e,
@@ -45,5 +49,9 @@ export const importMap = {
   "@payloadcms/richtext-lexical/client#StrikethroughFeatureClient": StrikethroughFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@payloadcms/richtext-lexical/client#UnderlineFeatureClient": UnderlineFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@payloadcms/richtext-lexical/client#BoldFeatureClient": BoldFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
-  "@payloadcms/richtext-lexical/client#ItalicFeatureClient": ItalicFeatureClient_e70f5e05f09f93e00b997edb1ef0c864
+  "@payloadcms/richtext-lexical/client#ItalicFeatureClient": ItalicFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
+  "@/components/admin/GenerateSEOButton#default": default_bb5842a3faf9dec2ad51cca18e335f9b,
+  "@/components/admin/GenerateArticleButton#default": default_e6d4dadec655c9986798da4569523591,
+  "@/components/admin/ContentItemRowLabel#default": default_dc8f6ece5c73a284af17d95b7b8df379,
+  "@/components/admin/PublishContentItemsButton#default": default_fe656e46f944057e20584ba9a7f4e4d0
 }

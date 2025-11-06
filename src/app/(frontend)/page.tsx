@@ -1,4 +1,5 @@
-import { headers as getHeaders } from 'next/headers.js'
+// ... existing code ...
+import { headers as getHeaders } from 'next/headers'
 import Image from 'next/image'
 import { getPayload } from 'payload'
 import React from 'react'
