@@ -98,9 +98,13 @@ export interface Config {
   };
   globals: {
     site: Site;
+    header: Header;
+    footer: Footer;
   };
   globalsSelect: {
     site: SiteSelect<false> | SiteSelect<true>;
+    header: HeaderSelect<false> | HeaderSelect<true>;
+    footer: FooterSelect<false> | FooterSelect<true>;
   };
   locale: null;
   user: User & {
@@ -1232,6 +1236,63 @@ export interface Site {
   createdAt?: string | null;
 }
 /**
+ * Global site header: logo and navigation links
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "header".
+ */
+export interface Header {
+  id: number;
+  logo?: (number | null) | Media;
+  /**
+   * Shown only when a logo is selected. Defaults to 400px.
+   */
+  logoWidth?: number | null;
+  /**
+   * Shown only when a logo is selected. Defaults to 200px.
+   */
+  logoHeight?: number | null;
+  navLinks?:
+    | {
+        label: string;
+        href: string;
+        external?: boolean | null;
+        highlight?: boolean | null;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * Global site footer: navigation and legal links
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "footer".
+ */
+export interface Footer {
+  id: number;
+  copyrightText?: string | null;
+  footerLinks?:
+    | {
+        label: string;
+        href: string;
+        external?: boolean | null;
+        id?: string | null;
+      }[]
+    | null;
+  legalLinks?:
+    | {
+        label: string;
+        href: string;
+        external?: boolean | null;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "site_select".
  */
@@ -1331,6 +1392,53 @@ export interface SiteSelect<T extends boolean = true> {
   gtmID?: T;
   gaMeasurementID?: T;
   facebookPixelID?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "header_select".
+ */
+export interface HeaderSelect<T extends boolean = true> {
+  logo?: T;
+  logoWidth?: T;
+  logoHeight?: T;
+  navLinks?:
+    | T
+    | {
+        label?: T;
+        href?: T;
+        external?: T;
+        highlight?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "footer_select".
+ */
+export interface FooterSelect<T extends boolean = true> {
+  copyrightText?: T;
+  footerLinks?:
+    | T
+    | {
+        label?: T;
+        href?: T;
+        external?: T;
+        id?: T;
+      };
+  legalLinks?:
+    | T
+    | {
+        label?: T;
+        href?: T;
+        external?: T;
+        id?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

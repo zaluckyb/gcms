@@ -1,6 +1,6 @@
 import { MigrateUpArgs, MigrateDownArgs } from '@payloadcms/db-postgres'
 
-export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
+export async function up({ db, payload: _payload, req: _req }: MigrateUpArgs): Promise<void> {
   // Create content_plan_transactions table for robust persistence logging
   await db.execute(`
     CREATE TABLE IF NOT EXISTS content_plan_transactions (

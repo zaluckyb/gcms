@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import payloadConfig from '@payload-config'
 import { extractPlainText, countWords } from '@/lib/seo-utils'
+import type { Post, Site } from '@/payload-types'
 
 type GenerateSEOBody = {
   id?: string | number
@@ -13,9 +14,7 @@ function clampString(str: string, max: number): string {
   return str.length > max ? str.slice(0, max).trim() : str.trim()
 }
 
-function words(text: string): string[] {
-  return (text.trim().match(/\b[\w''-]+\b/g) || []).map((w) => w.toLowerCase())
-}
+// Removed unused helper "words" to satisfy ESLint and keep file focused
 
 function dedupeKeywords(input: string): string {
   const list = input
@@ -81,14 +80,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: 'Missing id' }, { status: 400 })
     }
 
-    const doc = await payload.findByID({ collection: 'posts', id, depth: 1 })
+    const doc = (await payload.findByID({ collection: 'posts', id, depth: 1 })) as Post
     if (!doc) {
       return NextResponse.json({ ok: false, error: 'Post not found' }, { status: 404 })
     }
 
-    const site = await payload.findGlobal({ slug: 'site' }).catch(() => null)
-    const SITE_NAME = (site as any)?.siteName || process.env.SITE_NAME || 'Website'
-    const SITE_URL = (site as any)?.siteUrl || process.env.SITE_URL || ''
+    const site = (await payload.findGlobal({ slug: 'site' }).catch(() => null)) as Site | null
+    const SITE_NAME = site?.siteName || process.env.SITE_NAME || 'Website'
+    const SITE_URL = site?.siteUrl || process.env.SITE_URL || ''
     const nowIso = new Date().toISOString()
 
     const contentPlain = extractPlainText(doc.content || [])
@@ -205,12 +204,39 @@ Respect all limits. Output MUST match this JSON schema exactly.
     let content: string
     try {
       content = await callOpenAI(systemPrompt, userPrompt)
-    } catch (e: unknown) {
+    } catch (_ignore: unknown) {
       // One minimal retry with strict JSON reminder
       content = await callOpenAI(systemPrompt, userPrompt + '\n\nReturn ONLY valid JSON. No commentary.')
     }
 
-    let output: Record<string, unknown>
+    type SEOOutput = {
+      excerpt?: string
+      seo?: {
+        pageTitle?: string
+        metaDescription?: string
+        metaKeywords?: string
+        canonicalURL?: string
+      }
+      openGraph?: {
+        ogTitle?: string
+        ogDescription?: string
+      }
+      twitter?: {
+        twitterTitle?: string
+        twitterDescription?: string
+      }
+      jsonld?: {
+        headline?: string
+        schemaDescription?: string
+        wordCount?: number
+        datePublished?: string
+        dateModified?: string
+        authorName?: string
+        image?: string[]
+      }
+      qualityReport?: Record<string, unknown>
+    }
+    let output: SEOOutput
     try {
       output = JSON.parse(content)
     } catch (_e) {
@@ -219,15 +245,15 @@ Respect all limits. Output MUST match this JSON schema exactly.
 
     // Basic validation & adjustments
     let adjusted = false
-    output.seo = output.seo || {}
-    output.openGraph = output.openGraph || {}
-    output.twitter = output.twitter || {}
-    output.jsonld = output.jsonld || {}
-    output.qualityReport = output.qualityReport || {}
+    output.seo = output.seo ?? {}
+    output.openGraph = output.openGraph ?? {}
+    output.twitter = output.twitter ?? {}
+    output.jsonld = output.jsonld ?? {}
+    output.qualityReport = output.qualityReport ?? {}
 
     // Enforce canonical
-    if (postUrl && output.seo && typeof output.seo === 'object' && (output.seo as any).canonicalURL !== postUrl) {
-      (output.seo as any).canonicalURL = postUrl
+    if (postUrl && output.seo && typeof output.seo === 'object' && output.seo.canonicalURL !== postUrl) {
+      output.seo.canonicalURL = postUrl
       adjusted = true
     }
 
@@ -240,23 +266,22 @@ Respect all limits. Output MUST match this JSON schema exactly.
       twitterDescription: 200,
       headline: 110,
     }
-    const before = JSON.stringify(output)
-    const seo = output.seo as any
-    const openGraph = output.openGraph as any
-    const twitter = output.twitter as any
-    const jsonld = output.jsonld as any
+    const seo = output.seo
+    const openGraph = output.openGraph
+    const twitter = output.twitter
+    const jsonld = output.jsonld
     
-    seo.pageTitle = clampString(seo.pageTitle || '', limits.pageTitle)
-    seo.metaDescription = clampString(seo.metaDescription || '', limits.metaDescription)
-    openGraph.ogTitle = clampString(openGraph.ogTitle || seo.pageTitle || '', limits.pageTitle)
-    openGraph.ogDescription = clampString(openGraph.ogDescription || seo.metaDescription || '', limits.ogDescription)
-    twitter.twitterTitle = clampString(twitter.twitterTitle || seo.pageTitle || '', limits.twitterTitle)
-    twitter.twitterDescription = clampString(twitter.twitterDescription || seo.metaDescription || '', limits.twitterDescription)
-    jsonld.headline = clampString(jsonld.headline || seo.pageTitle || '', limits.headline)
-    jsonld.schemaDescription = clampString(jsonld.schemaDescription || seo.metaDescription || '', limits.metaDescription)
+    seo.pageTitle = clampString(seo.pageTitle ?? '', limits.pageTitle)
+    seo.metaDescription = clampString(seo.metaDescription ?? '', limits.metaDescription)
+    openGraph.ogTitle = clampString(openGraph.ogTitle ?? seo.pageTitle ?? '', limits.pageTitle)
+    openGraph.ogDescription = clampString(openGraph.ogDescription ?? seo.metaDescription ?? '', limits.ogDescription)
+    twitter.twitterTitle = clampString(twitter.twitterTitle ?? seo.pageTitle ?? '', limits.twitterTitle)
+    twitter.twitterDescription = clampString(twitter.twitterDescription ?? seo.metaDescription ?? '', limits.twitterDescription)
+    jsonld.headline = clampString(jsonld.headline ?? seo.pageTitle ?? '', limits.headline)
+    jsonld.schemaDescription = clampString(jsonld.schemaDescription ?? seo.metaDescription ?? '', limits.metaDescription)
 
     // Keywords normalization
-    seo.metaKeywords = dedupeKeywords(seo.metaKeywords || '')
+    seo.metaKeywords = dedupeKeywords(seo.metaKeywords ?? '')
     const kwCount = seo.metaKeywords ? seo.metaKeywords.split(',').filter(Boolean).length : 0
     if (kwCount < 3 || kwCount > 8) adjusted = true
 
@@ -272,52 +297,52 @@ Respect all limits. Output MUST match this JSON schema exactly.
     }
 
     // Word count tolerance: replace with local if off by >10%
-    const modelWC = Number(jsonld.wordCount || 0) || 0
+    const modelWC = Number(jsonld.wordCount ?? 0) || 0
     if (localWordCount && (modelWC < localWordCount * 0.9 || modelWC > localWordCount * 1.1)) {
       jsonld.wordCount = localWordCount
       adjusted = true
     }
 
     // Build updates per rules
-    const updates: Record<string, unknown> = {}
+    const updates: Partial<Post> = {}
 
     // Excerpt
     const excerptEmpty = !doc.excerpt || String(doc.excerpt).trim().length === 0
-    if (force || excerptEmpty) updates.excerpt = output.excerpt || ''
+    if (force || excerptEmpty) updates.excerpt = output.excerpt ?? ''
 
     // SEO overrides
     updates.seo = { ...(doc.seo || {}) }
-    const updatesSeo = updates.seo as any
-    if (force || !doc.seo?.pageTitle) updatesSeo.pageTitle = seo.pageTitle || ''
-    if (force || !doc.seo?.metaDescription) updatesSeo.metaDescription = seo.metaDescription || ''
-    if (force || !doc.seo?.metaKeywords) updatesSeo.metaKeywords = seo.metaKeywords || ''
-    if (force || !doc.seo?.canonicalURL) updatesSeo.canonicalURL = seo.canonicalURL || postUrl
+    const updatesSeo = updates.seo!
+    if (force || !doc.seo?.pageTitle) updatesSeo.pageTitle = seo.pageTitle ?? ''
+    if (force || !doc.seo?.metaDescription) updatesSeo.metaDescription = seo.metaDescription ?? ''
+    if (force || !doc.seo?.metaKeywords) updatesSeo.metaKeywords = seo.metaKeywords ?? ''
+    if (force || !doc.seo?.canonicalURL) updatesSeo.canonicalURL = seo.canonicalURL ?? postUrl
 
     // Open Graph
     updates.openGraph = { ...(doc.openGraph || {}) }
-    const updatesOpenGraph = updates.openGraph as any
-    if (force || !doc.openGraph?.ogTitle) updatesOpenGraph.ogTitle = openGraph.ogTitle || updatesSeo.pageTitle
-    if (force || !doc.openGraph?.ogDescription) updatesOpenGraph.ogDescription = openGraph.ogDescription || updatesSeo.metaDescription
+    const updatesOpenGraph = updates.openGraph!
+    if (force || !doc.openGraph?.ogTitle) updatesOpenGraph.ogTitle = openGraph.ogTitle ?? updatesSeo.pageTitle
+    if (force || !doc.openGraph?.ogDescription) updatesOpenGraph.ogDescription = openGraph.ogDescription ?? updatesSeo.metaDescription
     // ogImage left untouched
 
     // Twitter
     updates.twitter = { ...(doc.twitter || {}) }
-    const updatesTwitter = updates.twitter as any
-    if (force || !doc.twitter?.twitterTitle) updatesTwitter.twitterTitle = twitter.twitterTitle || updatesSeo.pageTitle
-    if (force || !doc.twitter?.twitterDescription) updatesTwitter.twitterDescription = twitter.twitterDescription || updatesSeo.metaDescription
+    const updatesTwitter = updates.twitter!
+    if (force || !doc.twitter?.twitterTitle) updatesTwitter.twitterTitle = twitter.twitterTitle ?? updatesSeo.pageTitle
+    if (force || !doc.twitter?.twitterDescription) updatesTwitter.twitterDescription = twitter.twitterDescription ?? updatesSeo.metaDescription
     // twitterImage left untouched
 
     // JSON-LD overrides
     updates.jsonld = { ...(doc.jsonld || {}) }
-    const updatesJsonld = updates.jsonld as any
-    if (force || !doc.jsonld?.headline) updatesJsonld.headline = jsonld.headline || updatesSeo.pageTitle
-    if (force || !doc.jsonld?.schemaDescription) updatesJsonld.schemaDescription = jsonld.schemaDescription || updatesSeo.metaDescription
+    const updatesJsonld = updates.jsonld!
+    if (force || !doc.jsonld?.headline) updatesJsonld.headline = jsonld.headline ?? updatesSeo.pageTitle
+    if (force || !doc.jsonld?.schemaDescription) updatesJsonld.schemaDescription = jsonld.schemaDescription ?? updatesSeo.metaDescription
     // wordCount mirrors local
     updatesJsonld.wordCount = localWordCount
 
     // Metadata
     updates.metadata = { ...(doc.metadata || {}) }
-    const updatesMetadata = updates.metadata as any
+    const updatesMetadata = updates.metadata!
     updatesMetadata.wordCount = localWordCount
     updatesMetadata.readingTime = localReadingTime
     updatesMetadata.lastModified = nowIso

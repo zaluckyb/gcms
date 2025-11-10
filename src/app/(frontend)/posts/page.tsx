@@ -7,6 +7,7 @@ import HeroDark from '@/components/HeroDark'
 import Section from '@/components/Section'
 import Container from '@/components/Container'
 import PostCard from '@/components/PostCard'
+import type { Post } from '@/payload-types'
 
 export async function generateMetadata() {
   try {
@@ -46,7 +47,7 @@ export default async function PostsIndexPage() {
     draft: isDraft,
   })
 
-  const posts = result?.docs ?? []
+  const posts: Post[] = (result?.docs ?? []) as Post[]
 
   return (
     <>
@@ -61,7 +62,7 @@ export default async function PostsIndexPage() {
             <p className="text-white/70">No posts found.</p>
           ) : (
             <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {posts.map((post: any) => (
+              {posts.map((post) => (
                 <PostCard key={post.id} post={post} />
               ))}
             </ul>

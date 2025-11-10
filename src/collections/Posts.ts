@@ -98,6 +98,14 @@ function removeCircularRefs<T>(input: T): T {
   return clone(input) as T
 }
 
+// Resolve base URL for admin previews
+const getBaseUrl = (): string => {
+  const envBase = process.env.PAYLOAD_PUBLIC_SERVER_URL ?? process.env.NEXT_PUBLIC_SERVER_URL
+  if (envBase?.trim()) return envBase.replace(/\/$/, '')
+  if (process.env.NODE_ENV === 'production') return 'https://webdeveloper.org.za'
+  return 'http://localhost:3001'
+}
+
 export const Posts: CollectionConfig = {
   slug: 'posts',
   labels: {
@@ -112,9 +120,10 @@ export const Posts: CollectionConfig = {
     pagination: {
       defaultLimit: 20,
     },
+    // Preview base URL helper moved to module scope
     preview: (doc: PostDocument) => {
-      const base = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'
-      return `${base}/posts/${doc?.slug || ''}`
+      const base = getBaseUrl()
+      return `${base}/posts/${doc?.slug ?? ''}`
     },
   },
   // Disable versions/drafts temporarily to avoid deep copy recursion while creating

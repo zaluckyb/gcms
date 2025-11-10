@@ -11,13 +11,47 @@ import {
 } from '@/lib/seo-utils'
 import { getSiteConfigSafely } from '@/lib/fallback-handler'
 import { headers as getHeaders, draftMode } from 'next/headers'
-import { RichText } from '@payloadcms/richtext-lexical/react'
+import RichTextContent from '@/components/RichTextContent'
 import ReadingProgress from '@/components/ReadingProgress'
 import StickyTOC from '@/components/StickyTOC'
 import ShareMenu from '@/components/ShareMenu'
 import Section from '@/components/Section'
 import Container from '@/components/Container'
 import PostHeader from '@/components/PostHeader'
+import { PostNeighborNav } from '@/components/PostNeighborNav'
+import type { Post as PayloadPost, User, Category, Tag } from '@/payload-types'
+
+// typed helpers for Payload where filters used below
+type Comparison<T> = { equals?: T; less_than?: T; greater_than?: T; not_equals?: T }
+
+type PostWhere = Partial<{
+  status: Comparison<PayloadPost['status']>
+  id: Comparison<PayloadPost['id']>
+  slug: Comparison<string>
+  datePublished: Comparison<string>
+  createdAt: Comparison<string>
+}>
+
+// optional extensions used by the page for legacy fields
+type ExtendedPost = PayloadPost & {
+  keywords?: Array<string | { keyword?: string }>
+  sameAs?: Array<string | { url?: string }>
+  comments?: Array<{ author?: string | User; createdAt?: string; content?: string }>
+  commentCount?: number
+  license?: string
+  articleSection?: string
+  inLanguage?: string
+  isPartOf?: string
+}
+
+// Normalize media for neighbor nav to avoid number union
+const toNeighborMedia = (img: unknown): { url?: string; alt?: string; filename?: string } | null => {
+  if (img && typeof img === 'object') {
+    const m = img as { url?: string; alt?: string; filename?: string }
+    return { url: m.url, alt: m.alt, filename: m.filename }
+  }
+  return null
+}
 
 function formatDate(dateString?: string | null): string {
   if (!dateString) return ''
@@ -48,7 +82,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       depth: 2, 
       draft: isDraft, 
       overrideAccess: isDraft 
-    })
+    }) as { docs: PayloadPost[] }
     
     const post = result.docs?.[0]
     if (!post) {
@@ -58,7 +92,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       }
     }
     
-    return buildMetadata(post as PostType, siteConfig)
+    return buildMetadata(post as unknown as PostType, siteConfig)
   } catch (error) {
     console.error('Error generating metadata:', error)
     return { 
@@ -87,46 +121,116 @@ export default async function PostBySlugPage({ params }: { params: Promise<{ slu
       depth: 2, 
       draft: isDraft, 
       overrideAccess: isDraft 
-    })
+    }) as { docs: PayloadPost[] }
     
     const post = result.docs?.[0]
     if (!post) return notFound()
 
+  const ext = post as ExtendedPost
+
   const authorLabel = (() => {
-    const a = (post as any).author
+    const a = post.author
     if (!a) return null
-    if (typeof a === 'object' && 'email' in a) return a.email as string
-    if (typeof a === 'string') return a
+    if (typeof a === 'object' && 'email' in a) return (a.email ?? null) as string | null
     return null
   })()
 
-  const readMinutes = Math.max(1, Math.ceil((((post as any)?.jsonld?.wordCount ?? 0) as number) / 200))
-  const section = (post as any).articleSection as string | undefined
-  const lang = (post as any).inLanguage as string | undefined
-  const isPartOf = (post as any).isPartOf as string | undefined
+  const readMinutes = Math.max(1, Math.ceil((post.jsonld?.wordCount ?? 0) / 200))
+  const section = ext.articleSection ?? (Array.isArray(post.categories) && post.categories.length > 0
+    ? (typeof post.categories[0] === 'object' ? (post.categories[0] as Category).name ?? undefined : undefined)
+    : undefined)
+  const lang = ext.inLanguage ?? siteConfig.schemaDefaults?.inLanguage ?? undefined
+  const isPartOf = ext.isPartOf
 
-  const displayDate = (post.datePublished ?? post.createdAt ?? new Date().toISOString()) as string
+  const displayDate = (post.datePublished ?? post.createdAt ?? new Date().toISOString())
 
   const displayTitle =
-    (post as any).headline ||
-    (post as any).title ||
-    (post as any)?.seo?.pageTitle ||
-    (post as any)?.jsonld?.headline ||
+    post.title ||
+    post.seo?.pageTitle ||
+    post.jsonld?.headline ||
     'Post'
 
   const displayExcerpt =
-    (post as any).description ||
-    (post as any).excerpt ||
-    (post as any)?.seo?.metaDescription ||
-    (post as any)?.jsonld?.schemaDescription ||
+    post.excerpt ||
+    post.seo?.metaDescription ||
+    post.jsonld?.schemaDescription ||
     undefined
 
-  const richData = (post as any).articleBody ?? (post as any).content
+  const richData: PayloadPost['content'] | null = post.content ?? null
+
+  // Determine previous and next posts by publish date (fallback to createdAt)
+  const orderField: 'datePublished' | 'createdAt' = post.datePublished ? 'datePublished' : 'createdAt'
+  const pivotDate: string = (post[orderField] ?? new Date().toISOString()) as string
+
+  const statusFilter: PostWhere = isDraft ? {} : { status: { equals: 'published' } }
+
+  const prevWhere: PostWhere = orderField === 'datePublished'
+    ? { ...statusFilter, datePublished: { less_than: pivotDate } }
+    : { ...statusFilter, createdAt: { less_than: pivotDate } }
+
+  const prevRes = await payload.find({
+    collection: 'posts',
+    where: prevWhere,
+    sort: `-${orderField}`,
+    limit: 1,
+    depth: 1,
+    draft: isDraft,
+    overrideAccess: isDraft,
+  }) as { docs: PayloadPost[] }
+
+  const nextWhere: PostWhere = orderField === 'datePublished'
+    ? { ...statusFilter, datePublished: { greater_than: pivotDate } }
+    : { ...statusFilter, createdAt: { greater_than: pivotDate } }
+
+  const nextRes = await payload.find({
+    collection: 'posts',
+    where: nextWhere,
+    sort: orderField,
+    limit: 1,
+    depth: 1,
+    draft: isDraft,
+    overrideAccess: isDraft,
+  }) as { docs: PayloadPost[] }
+
+  const prevPost = prevRes.docs?.[0]
+  const nextPost = nextRes.docs?.[0]
+
+  // Fallback: wrap-around neighbors to ensure navigation is always present
+  let prevFallback: PayloadPost | null = null
+  if (!prevPost) {
+    const resPrev = await payload.find({
+      collection: 'posts',
+      where: { ...statusFilter, id: { not_equals: post.id } },
+      sort: `-${orderField}`,
+      limit: 1,
+      depth: 1,
+      draft: isDraft,
+      overrideAccess: isDraft,
+    })
+    prevFallback = (resPrev as { docs: PayloadPost[] }).docs?.[0] ?? null
+  }
+
+  let nextFallback: PayloadPost | null = null
+  if (!nextPost) {
+    const resNext = await payload.find({
+      collection: 'posts',
+      where: { ...statusFilter, id: { not_equals: post.id } },
+      sort: orderField,
+      limit: 1,
+      depth: 1,
+      draft: isDraft,
+      overrideAccess: isDraft,
+    })
+    nextFallback = (resNext as { docs: PayloadPost[] }).docs?.[0] ?? null
+  }
+
+  const prevToShow: PayloadPost | null = prevPost ?? prevFallback ?? null
+  const nextToShow: PayloadPost | null = nextPost ?? nextFallback ?? null
 
     return (
       <>
         {/* Canonical + JSON-LD for SEO */}
-        <ArticleSEO post={post as PostType} siteConfig={siteConfig} />
+        <ArticleSEO post={post as unknown as PostType} siteConfig={siteConfig} />
         <ReadingProgress />
         <PostHeader title={displayTitle} excerpt={displayExcerpt} date={displayDate} />
 
@@ -166,15 +270,15 @@ export default async function PostBySlugPage({ params }: { params: Promise<{ slu
           </div>
 
           {/* Tags */}
-          {Array.isArray((post as any).keywords) && (post as any).keywords.length > 0 && (
+          {Array.isArray(post.tags) && post.tags.length > 0 && (
             <div className="mb-8">
               <div className="flex flex-wrap gap-2">
-                {(post as any).keywords.map((k: any, i: number) => (
+                {post.tags.map((t, i) => (
                   <span
                     key={i}
                     className="inline-flex items-center text-xs uppercase tracking-wide rounded-full border border-white/10 bg-white/5 text-white/70 px-2.5 py-1"
                   >
-                    {typeof k === 'string' ? k : k?.keyword}
+                    {typeof t === 'object' ? (t as Tag).name : `tag-${String(t)}`}
                   </span>
                 ))}
               </div>
@@ -186,18 +290,34 @@ export default async function PostBySlugPage({ params }: { params: Promise<{ slu
             <div>
               {/* Article */}
               <article id="article-content" className="prose prose-invert prose-lg w-full max-w-prose prose-a:text-accent prose-a:underline prose-hr:border-line prose-img:rounded-xl2 prose-code:bg-panel/60 prose-code:border prose-code:border-line prose-code:rounded prose-code:px-1.5">
-                {richData ? <RichText data={richData as any} /> : null}
+  {richData ? <RichTextContent content={richData} /> : null}
               </article>
 
+              {/* Prev / Next navigation */}
+              <div className="mt-10 w-full max-w-prose">
+                <PostNeighborNav
+                  prev={{
+                    slug: prevToShow?.slug,
+                    title: prevToShow?.title,
+                    featuredImage: toNeighborMedia(prevToShow?.featuredImage),
+                  }}
+                  next={{
+                    slug: nextToShow?.slug,
+                    title: nextToShow?.title,
+                    featuredImage: toNeighborMedia(nextToShow?.featuredImage),
+                  }}
+                />
+              </div>
+
               {/* SameAs links */}
-              {Array.isArray((post as any).sameAs) && (post as any).sameAs.length > 0 && (
+              {Array.isArray(ext.sameAs) && ext.sameAs.length > 0 && (
                 <div className="mt-12 w-full max-w-prose">
                   <h3 className="text-sm font-semibold text-white/80 mb-2">References</h3>
                   <ul className="flex flex-wrap gap-3">
-                    {(post as any).sameAs.map((ref: any, i: number) => (
+                    {ext.sameAs.map((ref, i) => (
                       <li key={i}>
                         <a
-                          href={typeof ref === 'string' ? ref : ref?.url}
+                          href={typeof ref === 'string' ? ref : ref?.url ?? '#'}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-accent hover:underline"
@@ -211,17 +331,17 @@ export default async function PostBySlugPage({ params }: { params: Promise<{ slu
               )}
 
               {/* Comments */}
-              {Array.isArray((post as any).comments) && (post as any).comments.length > 0 && (
+              {Array.isArray(ext.comments) && ext.comments.length > 0 && (
                 <section className="mt-12 w-full max-w-prose">
-                  <h2 className="text-xl font-semibold mb-4">Comments ({(post as any).commentCount ?? (post as any).comments.length})</h2>
+                  <h2 className="text-xl font-semibold mb-4">Comments ({ext.commentCount ?? ext.comments.length})</h2>
                   <ul className="space-y-4">
-                    {(post as any).comments.map((c: any, i: number) => (
+                    {ext.comments.map((c, i) => (
                       <li key={i} className="bg-panel/60 border border-line rounded p-4">
                         <div className="text-sm text-white/60 mb-2">
                           {c.author ? (
                             <span>{
                               typeof c.author === 'object' && 'email' in c.author
-                                ? (c.author as any).email
+                                ? (c.author as User).email ?? ''
                                 : String(c.author)
                             }</span>
                           ) : (
@@ -237,10 +357,10 @@ export default async function PostBySlugPage({ params }: { params: Promise<{ slu
               )}
 
               <footer className="mt-12 w-full max-w-prose text-sm text-white/60">
-                {(post as any).dateModified && <div>Last updated {formatDate((post as any).dateModified)}</div>}
-                {(post as any).license && (
+                {post.dateModified && <div>Last updated {formatDate(post.dateModified)}</div>}
+                {ext.license && (
                   <div className="mt-1">
-                    License: <a href={(post as any).license} className="text-accent hover:underline">{(post as any).license}</a>
+                    License: <a href={ext.license} className="text-accent hover:underline">{ext.license}</a>
                   </div>
                 )}
               </footer>

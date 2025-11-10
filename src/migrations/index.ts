@@ -10,6 +10,7 @@ import * as migration_20251103_230000_create_content_plans_tables from './202511
 import * as migration_20251103_235900_create_missing_tables from './20251103_235900_create_missing_tables';
 import * as migration_20251104_170359_add_content_items_fields from './20251104_170359_add_content_items_fields';
 import * as migration_20251104_190500_add_image_prompts_table from './20251104_190500_add_image_prompts_table';
+import * as migration_20251110_121000_create_header_global from './20251110_121000_create_header_global';
 
 export const migrations = [
   {
@@ -71,5 +72,10 @@ export const migrations = [
     up: migration_20251104_190500_add_image_prompts_table.up,
     down: migration_20251104_190500_add_image_prompts_table.down,
     name: '20251104_190500_add_image_prompts_table'
+  },
+  {
+    up: migration_20251110_121000_create_header_global.up,
+    down: migration_20251110_121000_create_header_global.down,
+    name: '20251110_121000_create_header_global'
   },
 ];

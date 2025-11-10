@@ -3,7 +3,7 @@ import { getPayload } from 'payload'
 import config from '@payload-config'
 import { handleHealthCheck } from '@/lib/performance-monitor'
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const payload = await getPayload({ config })
     const healthData = await handleHealthCheck(payload)

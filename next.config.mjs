@@ -4,9 +4,8 @@ import { withPayload } from '@payloadcms/next/withPayload'
 const nextConfig = {
   // Keep config minimal to avoid breaking external package resolution
   serverExternalPackages: ['sharp', 'esbuild', '@esbuild/win32-x64'],
-  experimental: {
-    optimizePackageImports: ['@payloadcms/next'],
-  },
+  // Disable optimizePackageImports for Payload to prevent route import issues
+  experimental: {},
   async headers() {
     return [
       {

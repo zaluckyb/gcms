@@ -27,14 +27,14 @@ function getClientKey(req: NextRequest, userId?: string | number | null): string
 }
 
 // Try to parse JSON content; if it fails, attempt to extract the first JSON block
-function safeParseJson(text: string): unknown | null {
+function safeParseJson(text: string): Record<string, unknown> | null {
   try {
-    return JSON.parse(text)
+    return JSON.parse(text) as Record<string, unknown>
   } catch {}
   const match = text.match(/\{[\s\S]*\}/)
   if (match) {
     try {
-      return JSON.parse(match[0])
+      return JSON.parse(match[0]) as Record<string, unknown>
     } catch {}
   }
   return null
@@ -46,8 +46,9 @@ async function callOpenAIForArticle(
 ): Promise<string> {
   const apiKey = process.env.OPENAI_API_KEY
   if (!apiKey) throw new Error('Missing OPENAI_API_KEY')
-
-const model = (opts?.model && String(opts.model)) || process.env.ARTICLE_MODEL || 'gpt-5'
+  // Prefer explicit override, then ARTICLE_MODEL, then a safe known fallback
+  const model =
+    (opts?.model && String(opts.model)) || process.env.ARTICLE_MODEL || process.env.ARTICLE_FALLBACK_MODEL || 'gpt-4o-mini'
   const instructions = Array.isArray(opts?.instructions) ? opts!.instructions.filter(Boolean) : []
 
   // Helper to call OpenAI chat with graceful retry when 'temperature' is unsupported
@@ -71,7 +72,7 @@ const model = (opts?.model && String(opts.model)) || process.env.ARTICLE_MODEL |
       const msg = json?.error?.message || ''
       const tempUnsupported = /temperature/i.test(msg) && /unsupported|does not support|Only the default \(1\)/i.test(msg)
       if (tempUnsupported && typeof body.temperature !== 'undefined') {
-        const { temperature, ...rest } = body
+        const { temperature: _temperature, ...rest } = body
         const res2 = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -98,7 +99,7 @@ Output the prompt strictly as JSON (no commentary). Include clear fields such as
     : ''
   const engineerUser = `${editorialList}Post Content Draft (JSON or text):\n${prompt}\n\nReturn only JSON.`
 
-  const step1 = {
+  const step1: { model: string; temperature: number; messages: { role: 'system' | 'user'; content: string }[] } = {
     model,
     temperature: 0.3,
     messages: [
@@ -120,7 +121,7 @@ Output strictly in Markdown without code fences. Avoid HTML.`
 
   if (!promptJson) {
     const fallbackUser = `${editorialList}Draft input (use as source, expand and structure logically):\n${prompt}\n\nHeading rules: Use H2 for main sections and H3 for subsections. Do not include any H1.`
-    const body = {
+    const body: { model: string; temperature: number; messages: { role: 'system' | 'user'; content: string }[] } = {
       model,
       temperature: 0.7,
       messages: [
@@ -139,7 +140,7 @@ Output strictly in Markdown without code fences. Avoid HTML.`
     promptJson,
   )}\n\nUse the Post Content Draft below as source context. Return Markdown only (no code fences, no JSON).\n\nHeading rules: Use H2 for main sections and H3 for subsections. Do not include any H1.\n\nDraft input:\n${prompt}`
 
-  const step2 = {
+  const step2: { model: string; temperature: number; messages: { role: 'system' | 'user'; content: string }[] } = {
     model,
     temperature: 0.7,
     messages: [
@@ -151,7 +152,8 @@ Output strictly in Markdown without code fences. Avoid HTML.`
   const j2 = await chatWithTemperatureFallback(step2)
   const content2 = j2?.choices?.[0]?.message?.content
   if (!content2 || typeof content2 !== 'string') throw new Error('No content from OpenAI (step 2)')
-  return content2
+  // Guard against extremely large payloads to avoid DB stress
+  return content2.length > 200_000 ? content2.slice(0, 200_000) : content2
 }
 
 // Convert Markdown to minimal Lexical JSON compatible with Payload richText-lexical
@@ -242,7 +244,17 @@ export async function POST(req: NextRequest) {
 
     const key = getClientKey(req, userId)
     if (rateLimited(key)) {
-      return NextResponse.json({ ok: false, error: 'Rate limit exceeded. Try again shortly.' }, { status: 429 })
+      return new NextResponse(
+        JSON.stringify({ ok: false, error: 'Rate limit exceeded. Try again shortly.' }),
+        {
+          status: 429,
+          headers: {
+            'Content-Type': 'application/json',
+            'X-RateLimit-Window': String(WINDOW_MS),
+            'X-RateLimit-Max': String(MAX_REQUESTS),
+          },
+        },
+      )
     }
 
     const doc = (await payload.findByID({ collection: 'posts', id, depth: 0 })) as Post
@@ -294,11 +306,25 @@ export async function POST(req: NextRequest) {
       data: { content },
     })) as Post
 
-    return NextResponse.json({ ok: true, post: updated })
+    return new NextResponse(JSON.stringify({ ok: true, post: updated }), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-RateLimit-Window': String(WINDOW_MS),
+        'X-RateLimit-Max': String(MAX_REQUESTS),
+      },
+    })
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unexpected error'
     // eslint-disable-next-line no-console
     console.error('generate-article error:', message)
-    return NextResponse.json({ ok: false, error: message }, { status: 500 })
+    return new NextResponse(JSON.stringify({ ok: false, error: message }), {
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-RateLimit-Window': String(WINDOW_MS),
+        'X-RateLimit-Max': String(MAX_REQUESTS),
+      },
+    })
   }
 }

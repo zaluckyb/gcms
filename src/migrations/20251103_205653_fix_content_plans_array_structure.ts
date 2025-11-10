@@ -1,6 +1,6 @@
 import { MigrateUpArgs, MigrateDownArgs, sql } from '@payloadcms/db-postgres'
 
-export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
+export async function up({ db, payload: _payload, req: _req }: MigrateUpArgs): Promise<void> {
   await db.execute(sql`
    CREATE TYPE "public"."enum_users_role" AS ENUM('admin', 'editor', 'user');
   CREATE TYPE "public"."enum_content_plans_status" AS ENUM('draft', 'active', 'completed', 'archived');
@@ -439,7 +439,7 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   DROP TYPE "public"."enum__posts_v_version_jsonld_schema_type";`)
 }
 
-export async function down({ db, payload, req }: MigrateDownArgs): Promise<void> {
+export async function down({ db, payload: _payload, req: _req }: MigrateDownArgs): Promise<void> {
   await db.execute(sql`
    CREATE TYPE "public"."enum_posts_open_graph_og_type" AS ENUM('article', 'website', 'profile', 'video.other');
   CREATE TYPE "public"."enum_posts_twitter_twitter_card" AS ENUM('summary_large_image', 'summary');
