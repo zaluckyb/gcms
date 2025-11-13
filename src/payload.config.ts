@@ -15,6 +15,7 @@ import { Tags } from './collections/Tags'
 import { Categories } from './collections/Categories'
 import { ContentPlans } from './collections/ContentPlans'
 import { ContentPlanTransactions } from './collections/ContentPlanTransactions'
+import { ContactDetails } from './collections/ContactDetails'
 import { Site } from './globals/Site'
 import { Header } from './globals/Header'
 import { Footer } from './globals/Footer'
@@ -280,6 +281,251 @@ export default buildConfig({
       console.log('✅ Ensured Header global tables/columns exist and seeded default row')
       console.log('✅ Ensured Footer global tables/columns exist and seeded default row')
 
+      // Ensure ContactDetails collection base table exists to satisfy admin list view
+      const contactSql = `
+        CREATE TABLE IF NOT EXISTS "contact_details" (
+          "id" varchar PRIMARY KEY,
+          "created_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
+          "updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL
+        );
+      `
+      await payload.db.pool.query(contactSql)
+      console.log('✅ Ensured ContactDetails base table exists')
+
+      // Seed a default Contact Details document if none exists
+      try {
+        const existing = await payload.find({ collection: 'contact-details', limit: 1 })
+        if ((existing?.docs?.length ?? 0) === 0) {
+          await payload.create({
+            collection: 'contact-details',
+            data: {
+              title: 'WebDeveloper Contact Details',
+              organization: {
+                orgId: 'https://webdeveloper.co.za/#org',
+                name: 'WebDeveloper',
+                url: 'https://webdeveloper.co.za/',
+                logo: 'https://webdeveloper.co.za/media/webdeveloper-logo.png',
+                email: 'hello@webdeveloper.co.za',
+                telephone: '+27 87 265 2465',
+                areaServed: [
+                  { type: 'Country', name: 'ZA' },
+                  { type: 'City', name: 'Cape Town' },
+                ],
+                sameAs: [
+                  { url: 'https://twitter.com/webdeveloper' },
+                  { url: 'https://www.linkedin.com/company/webdeveloper' },
+                  { url: 'https://github.com/webdeveloper' },
+                ],
+                contactPoint: [
+                  {
+                    contactType: 'Support',
+                    name: 'Customer Support',
+                    telephone: '+27 87 265 2465',
+                    email: 'support@webdeveloper.co.za',
+                    availableLanguage: [{ value: 'en-ZA' }, { value: 'af-ZA' }],
+                    areaServed: 'ZA',
+                    hoursAvailable: {
+                      dayOfWeek: 'Monday',
+                      opens: '08:00',
+                      closes: '17:00',
+                    },
+                    url: 'https://webdeveloper.co.za/support',
+                  },
+                  {
+                    contactType: 'Sales',
+                    telephone: '+27 87 265 2465',
+                    email: 'sales@webdeveloper.co.za',
+                    availableLanguage: [{ value: 'en-ZA' }],
+                    areaServed: 'ZA',
+                    hoursAvailable: {
+                      dayOfWeek: 'Tuesday',
+                      opens: '09:00',
+                      closes: '17:00',
+                    },
+                    url: 'https://webdeveloper.co.za/contact/sales',
+                  },
+                ],
+                department: [
+                  { id: 'https://webdeveloper.co.za/#dept-support' },
+                  { id: 'https://webdeveloper.co.za/#dept-sales' },
+                ],
+              },
+              hq: {
+                hqId: 'https://webdeveloper.co.za/#hq',
+                name: 'WebDeveloper Head Office',
+                image: 'https://webdeveloper.co.za/media/web-developer-2025.png',
+                telephone: '+27 87 265 2465',
+                email: 'support@webdeveloper.co.za',
+                address: {
+                  streetAddress: '123 Innovation Way',
+                  addressLocality: 'Pretoria',
+                  addressRegion: 'Gauteng',
+                  postalCode: '0002',
+                  addressCountry: 'ZA',
+                },
+                geo: { latitude: -25.7461, longitude: 28.1881 },
+                hasMap: 'https://maps.google.com/?q=-25.7461,28.1881',
+                openingHoursSpecification: [
+                  { dayOfWeek: 'Monday', opens: '08:00', closes: '17:00' },
+                  { dayOfWeek: 'Tuesday', opens: '08:00', closes: '17:00' },
+                  { dayOfWeek: 'Wednesday', opens: '08:00', closes: '17:00' },
+                  { dayOfWeek: 'Thursday', opens: '08:00', closes: '17:00' },
+                  { dayOfWeek: 'Friday', opens: '08:00', closes: '16:00' },
+                ],
+                publicAccess: true,
+                amenityFeature: [
+                  { name: 'WheelchairAccessible', value: true },
+                  { name: 'Parking', value: true },
+                ],
+                areaServed: {
+                  geoMidpoint: { latitude: -25.7461, longitude: 28.1881 },
+                  geoRadius: 50000,
+                },
+                paymentAccepted: 'Cash, Credit Card, EFT',
+                currenciesAccepted: 'ZAR, USD',
+                priceRange: 'R500-R2000',
+              },
+              persons: [
+                {
+                  personId: 'https://webdeveloper.co.za/#person-jane',
+                  name: 'Jane Doe',
+                  jobTitle: 'Support Lead',
+                  telephone: '+27 87 265 2465',
+                  email: 'jane.doe@webdeveloper.co.za',
+                },
+                {
+                  personId: 'https://webdeveloper.co.za/#person-john',
+                  name: 'John Smith',
+                  jobTitle: 'Sales Lead',
+                  telephone: '+27 87 265 2465',
+                  email: 'john.smith@webdeveloper.co.za',
+                },
+              ],
+              webPage: {
+                webPageId: 'https://webdeveloper.co.za/contact/#webpage',
+                url: 'https://webdeveloper.co.za/contact',
+                name: 'Contact WebDeveloper',
+                description: 'Get in touch with WebDeveloper for modern web solutions.',
+                primaryImageOfPage: 'https://webdeveloper.co.za/media/web-developer-2025.png',
+                potentialAction: [
+                  {
+                    actions: [
+                      {
+                        blockType: 'ContactAction',
+                        target: {
+                          urlTemplate: 'https://webdeveloper.co.za/contact',
+                          actionPlatform: 'http://schema.org/DesktopWebPlatform',
+                          inLanguage: 'en-ZA',
+                        },
+                      },
+                      {
+                        blockType: 'CommunicateAction',
+                        name: 'Live Chat',
+                        target: {
+                          urlTemplate: 'https://webdeveloper.co.za/chat',
+                          actionPlatform: 'http://schema.org/MobileWebPlatform',
+                        },
+                      },
+                    ],
+                  },
+                ],
+                inLanguage: 'en-ZA',
+              },
+              breadcrumb: {
+                breadcrumbId: 'https://webdeveloper.co.za/contact/#breadcrumb',
+                items: [
+                  { position: 1, name: 'Home', item: 'https://webdeveloper.co.za/' },
+                  { position: 2, name: 'Contact', item: 'https://webdeveloper.co.za/contact' },
+                ],
+              },
+              faq: {
+                faqId: 'https://webdeveloper.co.za/contact/#faq',
+                mainEntity: [
+                  {
+                    name: 'How do I contact support?',
+                    acceptedAnswer: 'Email support@webdeveloper.co.za or call +27 87 265 2465.',
+                  },
+                  {
+                    name: 'What are your business hours?',
+                    acceptedAnswer: 'We are open Monday to Friday, 08:00–17:00 (Friday until 16:00).',
+                  },
+                ],
+              },
+              website: {
+                websiteId: 'https://webdeveloper.co.za/#website',
+                url: 'https://webdeveloper.co.za/',
+                name: 'WebDeveloper',
+                sameAs: [
+                  { url: 'https://twitter.com/webdeveloper' },
+                  { url: 'https://www.linkedin.com/company/webdeveloper' },
+                  { url: 'https://github.com/webdeveloper' },
+                ],
+                inLanguage: 'en-ZA',
+              },
+            },
+          })
+          console.log('✅ Seeded default Contact Details document')
+        }
+      } catch (e) {
+        console.warn(
+          '⚠️ Contact Details seed skipped or failed',
+          e instanceof Error ? e.message : String(e),
+        )
+      }
+
+      // Ensure Posts collection base table exists for admin list and queries
+      const postsSql = `
+        CREATE TABLE IF NOT EXISTS "posts" (
+          "id" serial PRIMARY KEY,
+          "title" varchar,
+          "slug" varchar UNIQUE,
+          "excerpt" text,
+          "featured_image_id" integer,
+          "content" jsonb,
+          "post_content_draft" text,
+          "author_id" integer,
+          "date_published" timestamp(3) with time zone,
+          "date_modified" timestamp(3) with time zone,
+          "status" varchar DEFAULT 'draft',
+          "created_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
+          "updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL
+        );
+
+        DO $$
+        BEGIN
+          IF NOT EXISTS (
+            SELECT 1 FROM pg_constraint WHERE conname = 'posts_featured_image_id_media_id_fk'
+          ) THEN
+            ALTER TABLE "posts"
+              ADD CONSTRAINT "posts_featured_image_id_media_id_fk"
+              FOREIGN KEY ("featured_image_id") REFERENCES "media"("id")
+              ON DELETE SET NULL ON UPDATE NO ACTION;
+          END IF;
+
+          IF NOT EXISTS (
+            SELECT 1 FROM pg_constraint WHERE conname = 'posts_author_id_users_id_fk'
+          ) THEN
+            ALTER TABLE "posts"
+              ADD CONSTRAINT "posts_author_id_users_id_fk"
+              FOREIGN KEY ("author_id") REFERENCES "users"("id")
+              ON DELETE SET NULL ON UPDATE NO ACTION;
+          END IF;
+        END $$;
+      `
+      await payload.db.pool.query(postsSql)
+      console.log('✅ Ensured Posts base table exists')
+
+      // Ensure Site global base table exists
+      const siteSql = `
+        CREATE TABLE IF NOT EXISTS "site" (
+          "id" serial PRIMARY KEY,
+          "created_at" timestamp(3) with time zone DEFAULT now() NOT NULL,
+          "updated_at" timestamp(3) with time zone DEFAULT now() NOT NULL
+        );
+      `
+      await payload.db.pool.query(siteSql)
+      console.log('✅ Ensured Site global base table exists')
+
       // Ensure Footer global document exists via Payload API (in addition to raw SQL)
       try {
         await payload.findGlobal({ slug: 'footer' })
@@ -305,7 +551,7 @@ export default buildConfig({
       console.error('❌ Failed to run onInit DB setup', e)
     }
   },
-  collections: [Users, Media, Posts, Tags, Categories, Personas, ContentPlans, ContentPlanTransactions],
+  collections: [Users, Media, Posts, Tags, Categories, Personas, ContentPlans, ContentPlanTransactions, ContactDetails],
   globals: [Site, Header, Footer],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || 'dev-secret',
@@ -316,8 +562,9 @@ export default buildConfig({
     pool: {
       connectionString: process.env.DATABASE_URI || '',
     },
-    // Keep automatic schema push disabled; we run targeted migrations instead
-    push: false,
+    // Disable automatic schema push in dev to avoid interactive prompts
+    // Enable via env `DB_SCHEMA_PUSH=true` when intentionally migrating
+    push: process.env.DB_SCHEMA_PUSH === 'true',
   }),
   // sharp,
   plugins: [

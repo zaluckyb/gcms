@@ -45,6 +45,11 @@ export default async function PostsIndexPage() {
     limit: 24,
     sort: '-datePublished',
     draft: isDraft,
+    where: isDraft
+      ? undefined
+      : {
+          status: { equals: 'published' },
+        },
   })
 
   const posts: Post[] = (result?.docs ?? []) as Post[]

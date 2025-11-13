@@ -232,43 +232,32 @@ export default async function PostBySlugPage({ params }: { params: Promise<{ slu
         {/* Canonical + JSON-LD for SEO */}
         <ArticleSEO post={post as unknown as PostType} siteConfig={siteConfig} />
         <ReadingProgress />
-        <PostHeader title={displayTitle} excerpt={displayExcerpt} date={displayDate} />
+        {/* Hero header with featured image background when available */}
+        {(() => {
+          const img = post.featuredImage as unknown as { url?: string; filename?: string; alt?: string } | null
+          const bgUrl = img?.url ?? (img?.filename ? `/api/media/file/${img.filename}` : undefined)
+          const bgAlt = img?.alt ?? ''
+          return (
+            <PostHeader
+              title={displayTitle}
+              excerpt={displayExcerpt}
+              date={displayDate}
+              bgImageUrl={bgUrl}
+              bgAlt={bgAlt}
+              meta={{
+                authorLabel,
+                section,
+                lang,
+                readMinutes,
+                isPartOf,
+                showShare: true,
+              }}
+            />
+          )
+        })()}
 
-      {/* Meta chips & share */}
       <Section>
         <Container>
-          <div className="flex flex-wrap items-center gap-2 mb-6">
-            {authorLabel && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 text-white/80 px-3 py-1.5 text-xs shadow-subtle">
-                👤 {authorLabel}
-              </span>
-            )}
-            {post.datePublished && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 text-white/80 px-3 py-1.5 text-xs shadow-subtle">
-                📅 {formatDate(post.datePublished)}
-              </span>
-            )}
-            {section && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 text-white/80 px-3 py-1.5 text-xs shadow-subtle">
-                🏷️ {section}
-              </span>
-            )}
-            {lang && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 text-white/80 px-3 py-1.5 text-xs shadow-subtle">
-                🌐 {lang}
-              </span>
-            )}
-            <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 text-white/80 px-3 py-1.5 text-xs shadow-subtle">
-              ⏱️ {readMinutes} min read
-            </span>
-            {isPartOf && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 text-white/80 px-3 py-1.5 text-xs shadow-subtle">
-                📚 {isPartOf}
-              </span>
-            )}
-            <span className="ml-auto"><ShareMenu /></span>
-          </div>
-
           {/* Tags */}
           {Array.isArray(post.tags) && post.tags.length > 0 && (
             <div className="mb-8">

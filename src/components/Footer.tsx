@@ -48,7 +48,7 @@ const Footer = async () => {
                 {link.external ? (
                   <a href={link.href} rel="noopener noreferrer" className="hover:text-white">{link.label}</a>
                 ) : (
-                  <Link href={link.href} className="hover:text-white">{link.label}</Link>
+                  <Link href={link.href} prefetch={false} className="hover:text-white">{link.label}</Link>
                 )}
               </li>
             ))}
@@ -63,7 +63,7 @@ const Footer = async () => {
                 {link.external ? (
                   <a href={link.href} rel="noopener noreferrer" className="hover:text-white">{link.label}</a>
                 ) : (
-                  <Link href={link.href} className="hover:text-white">{link.label}</Link>
+                  <Link href={link.href} prefetch={false} className="hover:text-white">{link.label}</Link>
                 )}
               </li>
             ))}

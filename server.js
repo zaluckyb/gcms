@@ -36,8 +36,10 @@ console.error = (...args) => {
   originalConsoleError(...args)
 }
 
-const port = process.env.PORT || 3000
-const app = next({ dev: false })
+const port = Number(process.env.PORT) || 3000
+// Use dev mode unless explicitly in production. Prevents attempts to read
+// production-only manifests (e.g., routes-manifest.json) during local dev.
+const app = next({ dev: process.env.NODE_ENV !== 'production' })
 const handle = app.getRequestHandler()
 
 app.prepare().then(() => {

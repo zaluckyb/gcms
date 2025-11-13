@@ -40,6 +40,11 @@
     ".next/dev/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "src/collections/**",
+    "src/globals/**",
+    "src/fields/**",
+    "src/migrations/**",
+    "src/components/admin/**"
   ]
 }

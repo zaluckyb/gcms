@@ -59,7 +59,7 @@ export default function PostCard({ post }: { post: Post }) {
 
   return (
     <li className="group rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-      <Link href={href} className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600">
+      <Link href={href} prefetch={false} className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600">
         {/* Cover media */}
         {imageURL ? (
           <div className="relative w-full h-44 md:h-56">

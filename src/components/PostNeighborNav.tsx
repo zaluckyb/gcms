@@ -48,6 +48,7 @@ export const PostNeighborNav: React.FC<Props> = ({ prev, next }) => {
     return href ? (
       <Link
         href={href}
+        prefetch={false}
         aria-label={ariaLabel}
         className='group relative overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-900/70 hover:bg-neutral-800/70 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500'
       >

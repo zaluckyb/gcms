@@ -50,7 +50,7 @@ const Header = async () => {
   return (
     <header className="bg-black/90 backdrop-blur supports-[backdrop-filter]:bg-black/70">
       <div className="mx-auto max-w-7xl px-6 py-4 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-3">
+        <Link href="/" prefetch={false} className="flex items-center gap-3">
           {logoUrl ? (
             <Image src={logoUrl} alt="Webdeveloper logo" width={logoWidth} height={logoHeight} priority />
           ) : (
@@ -73,6 +73,7 @@ const Header = async () => {
               <Link
                 key={`${link.label}-${i}`}
                 href={link.href}
+                prefetch={false}
                 className={link.highlight ? 'text-emerald-400 font-medium' : 'text-white/80 hover:text-white'}
               >
                 {link.label}

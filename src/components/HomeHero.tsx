@@ -35,12 +35,14 @@ const HomeHero = ({
             <div className="mt-10 flex items-center gap-4">
               <Link
                 href="/posts"
+                prefetch={false}
                 className="inline-flex items-center rounded-full px-5 py-2.5 text-sm font-medium text-white ring-1 ring-emerald-500 hover:bg-emerald-500/10 transition-colors"
               >
                 Learn More
               </Link>
               <Link
                 href="/contact"
+                prefetch={false}
                 className="inline-flex items-center rounded-full bg-emerald-500 px-5 py-2.5 text-sm font-medium text-black hover:bg-emerald-400 transition-colors"
               >
                 Contact Us

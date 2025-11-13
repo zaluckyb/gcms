@@ -75,6 +75,7 @@ export interface Config {
     personas: Persona;
     contentPlans: ContentPlan;
     contentPlanTransactions: ContentPlanTransaction;
+    'contact-details': ContactDetail;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
@@ -89,6 +90,7 @@ export interface Config {
     personas: PersonasSelect<false> | PersonasSelect<true>;
     contentPlans: ContentPlansSelect<false> | ContentPlansSelect<true>;
     contentPlanTransactions: ContentPlanTransactionsSelect<false> | ContentPlanTransactionsSelect<true>;
+    'contact-details': ContactDetailsSelect<false> | ContactDetailsSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
     'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
@@ -636,6 +638,198 @@ export interface ContentPlanTransaction {
   createdAt: string;
 }
 /**
+ * Manage Contact Details in a structure compatible with .trae/documents/contact.md JSON-LD
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "contact-details".
+ */
+export interface ContactDetail {
+  id: number;
+  /**
+   * Used as the admin title. Recommend matching Organization name.
+   */
+  title: string;
+  organization: {
+    orgId: string;
+    name: string;
+    url: string;
+    logo?: string | null;
+    email: string;
+    telephone: string;
+    areaServed?:
+      | {
+          type: 'Country' | 'City';
+          name: string;
+          id?: string | null;
+        }[]
+      | null;
+    sameAs?:
+      | {
+          url?: string | null;
+          id?: string | null;
+        }[]
+      | null;
+    contactPoint?:
+      | {
+          contactType: string;
+          name?: string | null;
+          telephone: string;
+          email?: string | null;
+          availableLanguage?:
+            | {
+                value: string;
+                id?: string | null;
+              }[]
+            | null;
+          areaServed?: string | null;
+          hoursAvailable?: {
+            dayOfWeek?: ('Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday' | 'Sunday') | null;
+            opens?: string | null;
+            closes?: string | null;
+          };
+          url?: string | null;
+          id?: string | null;
+        }[]
+      | null;
+    department?:
+      | {
+          id: string;
+        }[]
+      | null;
+  };
+  hq: {
+    hqId: string;
+    name: string;
+    image?: string | null;
+    telephone: string;
+    email?: string | null;
+    address: {
+      streetAddress: string;
+      addressLocality: string;
+      addressRegion: string;
+      postalCode: string;
+      addressCountry: string;
+    };
+    geo: {
+      latitude: number;
+      longitude: number;
+    };
+    hasMap?: string | null;
+    openingHoursSpecification?:
+      | {
+          dayOfWeek?: ('Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday' | 'Sunday') | null;
+          opens?: string | null;
+          closes?: string | null;
+          id?: string | null;
+        }[]
+      | null;
+    publicAccess?: boolean | null;
+    amenityFeature?:
+      | {
+          name: string;
+          value?: boolean | null;
+          id?: string | null;
+        }[]
+      | null;
+    areaServed: {
+      geoMidpoint: {
+        latitude: number;
+        longitude: number;
+      };
+      geoRadius: number;
+    };
+    paymentAccepted?: string | null;
+    currenciesAccepted?: string | null;
+    priceRange?: string | null;
+  };
+  persons?:
+    | {
+        personId: string;
+        name: string;
+        jobTitle: string;
+        telephone: string;
+        email?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  webPage: {
+    webPageId: string;
+    url: string;
+    name: string;
+    description: string;
+    primaryImageOfPage?: string | null;
+    potentialAction?:
+      | {
+          actions?:
+            | (
+                | {
+                    target?: {
+                      urlTemplate?: string | null;
+                      actionPlatform?:
+                        | ('http://schema.org/DesktopWebPlatform' | 'http://schema.org/MobileWebPlatform')
+                        | null;
+                      inLanguage?: string | null;
+                    };
+                    id?: string | null;
+                    blockName?: string | null;
+                    blockType: 'ContactAction';
+                  }
+                | {
+                    name?: string | null;
+                    target?: {
+                      urlTemplate?: string | null;
+                      actionPlatform?:
+                        | ('http://schema.org/DesktopWebPlatform' | 'http://schema.org/MobileWebPlatform')
+                        | null;
+                    };
+                    id?: string | null;
+                    blockName?: string | null;
+                    blockType: 'CommunicateAction';
+                  }
+              )[]
+            | null;
+          id?: string | null;
+        }[]
+      | null;
+    inLanguage?: string | null;
+  };
+  breadcrumb: {
+    breadcrumbId: string;
+    items?:
+      | {
+          position: number;
+          name: string;
+          item: string;
+          id?: string | null;
+        }[]
+      | null;
+  };
+  faq: {
+    faqId: string;
+    mainEntity?:
+      | {
+          name: string;
+          acceptedAnswer: string;
+          id?: string | null;
+        }[]
+      | null;
+  };
+  website: {
+    websiteId: string;
+    url: string;
+    name: string;
+    sameAs?:
+      | {
+          url?: string | null;
+          id?: string | null;
+        }[]
+      | null;
+    inLanguage?: string | null;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-locked-documents".
  */
@@ -673,6 +867,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'contentPlanTransactions';
         value: number | ContentPlanTransaction;
+      } | null)
+    | ({
+        relationTo: 'contact-details';
+        value: number | ContactDetail;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -957,6 +1155,216 @@ export interface ContentPlanTransactionsSelect<T extends boolean = true> {
   retryCount?: T;
   executionTimeMs?: T;
   completedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "contact-details_select".
+ */
+export interface ContactDetailsSelect<T extends boolean = true> {
+  title?: T;
+  organization?:
+    | T
+    | {
+        orgId?: T;
+        name?: T;
+        url?: T;
+        logo?: T;
+        email?: T;
+        telephone?: T;
+        areaServed?:
+          | T
+          | {
+              type?: T;
+              name?: T;
+              id?: T;
+            };
+        sameAs?:
+          | T
+          | {
+              url?: T;
+              id?: T;
+            };
+        contactPoint?:
+          | T
+          | {
+              contactType?: T;
+              name?: T;
+              telephone?: T;
+              email?: T;
+              availableLanguage?:
+                | T
+                | {
+                    value?: T;
+                    id?: T;
+                  };
+              areaServed?: T;
+              hoursAvailable?:
+                | T
+                | {
+                    dayOfWeek?: T;
+                    opens?: T;
+                    closes?: T;
+                  };
+              url?: T;
+              id?: T;
+            };
+        department?:
+          | T
+          | {
+              id?: T;
+            };
+      };
+  hq?:
+    | T
+    | {
+        hqId?: T;
+        name?: T;
+        image?: T;
+        telephone?: T;
+        email?: T;
+        address?:
+          | T
+          | {
+              streetAddress?: T;
+              addressLocality?: T;
+              addressRegion?: T;
+              postalCode?: T;
+              addressCountry?: T;
+            };
+        geo?:
+          | T
+          | {
+              latitude?: T;
+              longitude?: T;
+            };
+        hasMap?: T;
+        openingHoursSpecification?:
+          | T
+          | {
+              dayOfWeek?: T;
+              opens?: T;
+              closes?: T;
+              id?: T;
+            };
+        publicAccess?: T;
+        amenityFeature?:
+          | T
+          | {
+              name?: T;
+              value?: T;
+              id?: T;
+            };
+        areaServed?:
+          | T
+          | {
+              geoMidpoint?:
+                | T
+                | {
+                    latitude?: T;
+                    longitude?: T;
+                  };
+              geoRadius?: T;
+            };
+        paymentAccepted?: T;
+        currenciesAccepted?: T;
+        priceRange?: T;
+      };
+  persons?:
+    | T
+    | {
+        personId?: T;
+        name?: T;
+        jobTitle?: T;
+        telephone?: T;
+        email?: T;
+        id?: T;
+      };
+  webPage?:
+    | T
+    | {
+        webPageId?: T;
+        url?: T;
+        name?: T;
+        description?: T;
+        primaryImageOfPage?: T;
+        potentialAction?:
+          | T
+          | {
+              actions?:
+                | T
+                | {
+                    ContactAction?:
+                      | T
+                      | {
+                          target?:
+                            | T
+                            | {
+                                urlTemplate?: T;
+                                actionPlatform?: T;
+                                inLanguage?: T;
+                              };
+                          id?: T;
+                          blockName?: T;
+                        };
+                    CommunicateAction?:
+                      | T
+                      | {
+                          name?: T;
+                          target?:
+                            | T
+                            | {
+                                urlTemplate?: T;
+                                actionPlatform?: T;
+                              };
+                          id?: T;
+                          blockName?: T;
+                        };
+                  };
+              id?: T;
+            };
+        inLanguage?: T;
+      };
+  breadcrumb?:
+    | T
+    | {
+        breadcrumbId?: T;
+        items?:
+          | T
+          | {
+              position?: T;
+              name?: T;
+              item?: T;
+              id?: T;
+            };
+      };
+  faq?:
+    | T
+    | {
+        faqId?: T;
+        mainEntity?:
+          | T
+          | {
+              name?: T;
+              acceptedAnswer?: T;
+              id?: T;
+            };
+      };
+  website?:
+    | T
+    | {
+        websiteId?: T;
+        url?: T;
+        name?: T;
+        sameAs?:
+          | T
+          | {
+              url?: T;
+              id?: T;
+            };
+        inLanguage?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
 }
