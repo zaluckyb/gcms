@@ -67,6 +67,28 @@ export default async function RootLayout(props: { children: React.ReactNode }) {
   return (
     <html lang={siteConfig.seoDefaults?.language || 'en'}>
       <head>
+        <Script id="console-devtools-suppress" strategy="beforeInteractive">
+          {`
+            (function(){
+              var original = console.error;
+              console.error = function(){
+                var args = Array.prototype.slice.call(arguments);
+                var msg = args.join(' ');
+                if (msg.includes('negative time stamp') || msg.includes('ERR_ABORTED') || msg.includes('flushComponentPerformance')) {
+                  return;
+                }
+                var isStyled = typeof args[0] === 'string' && args[0].startsWith('%c%s%c');
+                var hasServerLabel = args.indexOf('Server') !== -1;
+                var hasNull = args.some(function(a){ return a === null; });
+                var onlyNullish = args.every(function(a){ return a == null || (typeof a === 'string' && a.trim() === ''); });
+                if ((isStyled && hasServerLabel && hasNull) || onlyNullish) {
+                  return;
+                }
+                return original.apply(console, args);
+              };
+            })();
+          `}
+        </Script>
         {siteConfig.seoDefaults?.charset && (
           <meta charSet={siteConfig.seoDefaults.charset} />
         )}
